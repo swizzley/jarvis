@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net/url"
 	"os"
 	"regexp"
@@ -10,7 +11,9 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-request"
+	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/go-slack"
 )
 
@@ -30,6 +33,7 @@ func main() {
 	})
 
 	client.Listen(slack.EVENT_MESSAGE, func(m *slack.Message, c *slack.Client) {
+		logf("message hook fired")
 		resErr := doResponse(m, c)
 		if resErr != nil {
 			log(resErr)
@@ -53,34 +57,46 @@ func main() {
 func doResponse(m *slack.Message, c *slack.Client) error {
 	user := findUser(m.User)
 	channel := findChannel(m.Channel)
-	message := m.Text
-	messageLessMentions := withoutMentions(message)
+	fullMessage := m.Text
+	message := lessMentions(fullMessage)
+
+	if user == nil || channel == nil {
+		return nil
+	}
 
 	logf("incoming message: #%s - %s - %s", channel.Name, user.Name, message)
-	if channel.Name == "bot-test" {
-		if isMention(message) {
-			if strings.HasPrefix(messageLessMentions, "food") {
-				queryPieces := strings.Split(messageLessMentions, " ")[1:]
-				results := amazonFoodSearch(strings.Join(queryPieces, " "))
-				if len(results) != 0 {
-					return sayf(c, channel.Id, results[0])
-				} else {
-					return sayf(c, channel.Id, "No Results for Food Query\n>%s", messageLessMentions)
-				}
-
+	if isMention(fullMessage) {
+		if strings.HasPrefix(message, "food") {
+			results := amazonFoodSearch(lessFirst(message))
+			if len(results) != 0 {
+				firstProduct := results[0]
+				return sayf(c, channel.Id, "I found the following product, it costs %s\n>%s", firstProduct.price, firstProduct.url)
 			} else {
-				return sayf(c, channel.Id, "I don't know how to respond to this\n>%s", messageLessMentions)
+				return sayf(c, channel.Id, "No Results for Food Query\n>%s", message)
 			}
+		} else if isSalutation(message) {
+			salutation := []string{"Hey %s", "Hi %s", "Hello %s", "Ohayo Gozamaisu %s", "Salut %s", "Yo %s"}
+			return sayf(c, channel.Id, random(salutation), user.Profile.FirstName)
+		} else {
+			return sayf(c, channel.Id, "I don't know how to respond to this\n>%s", message)
 		}
 	}
 	return nil
+}
+
+func random(messages []string) string {
+	return messages[rand.Intn(len(messages))]
 }
 
 func isMention(message string) bool {
 	return like(message, fmt.Sprintf("<@%s>", _botId))
 }
 
-func withoutMentions(message string) string {
+func isSalutation(message string) bool {
+	return likeAny(message, []string{"^hello", "^hi", "^greetings", "^hey"})
+}
+
+func lessMentions(message string) string {
 	output := ""
 	state := 0
 	for _, c := range message {
@@ -109,9 +125,23 @@ func withoutMentions(message string) string {
 	return output
 }
 
+func lessFirst(message string) string {
+	queryPieces := strings.Split(message, " ")[1:]
+	return strings.Join(queryPieces, " ")
+}
+
 func like(corpus, expr string) bool {
 	matched, _ := regexp.Match(expr, []byte(corpus))
 	return matched
+}
+
+func likeAny(corpus string, exprs []string) bool {
+	for _, expr := range exprs {
+		if like(corpus, expr) {
+			return true
+		}
+	}
+	return false
 }
 
 func findUser(userId string) *slack.User {
@@ -162,29 +192,62 @@ func logf(format string, components ...interface{}) {
 	fmt.Printf("%s - %s\n", time.Now().UTC().Format(time.RFC3339), message)
 }
 
-func amazonFoodSearch(query string) []string {
+type amazonProduct struct {
+	name     string
+	price    string
+	url      string
+	is_prime bool
+}
+
+func amazonFoodSearch(query string) []amazonProduct {
+	products := []amazonProduct{}
 	queryEscaped := url.QueryEscape(query)
-	queryFormat := "http://www.amazon.com/s/ref=nb_sb_noss_1?url=search-alias%3Dgrocery&field-keywords=%s"
+	queryFormat := "http://www.amazon.com/s/?url=search-alias%%3Dgrocery&field-keywords=%s"
 	fullQuery := fmt.Sprintf(queryFormat, queryEscaped)
 
 	results, fetchErr := request.NewRequest().AsGet().WithHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36").WithUrl(fullQuery).FetchString()
 	if fetchErr != nil {
 		log(fetchErr)
-		return []string{}
+		return products
+	}
+
+	if util.IsEmpty(results) {
+		return products
 	}
 
 	doc, docErr := goquery.NewDocumentFromReader(strings.NewReader(results))
 
 	if docErr != nil {
 		log(docErr)
-		return []string{}
+		return products
 	}
 
-	products := []string{}
-	doc.Find(".a-link-normal").Each(func(i int, s *goquery.Selection) {
-		href, _ := s.Attr("href")
-		products = append(products, href)
+	doc.Find("li.s-result-item").Each(func(i int, s *goquery.Selection) {
+		link := s.Find("a.s-access-detail-page").First()
+		href, _ := link.Attr("href")
+		price := s.Find("span.a-color-price")
+
+		prime := s.Find("i.a-icon-prime").First()
+
+		product := amazonProduct{}
+		product.url = href
+		product.name = link.Text()
+		product.price = price.Text()
+		product.is_prime = prime != nil
+
+		if product.is_prime {
+			products = append(products, product)
+		}
 	})
 
 	return products
+}
+
+func writeToFile(path, contents string) error {
+	f, fErr := os.Create(path)
+	if fErr != nil {
+		return exception.Wrap(fErr)
+	}
+	f.WriteString(contents)
+	return nil
 }
