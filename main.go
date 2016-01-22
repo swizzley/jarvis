@@ -22,6 +22,9 @@ var _channelsLookup map[string]slack.Channel
 var _botId string
 var _orders []order
 
+var _searchResults map[string][]amazonProduct
+var _scrollIndicies map[string]int
+
 func TOKEN() string {
 	return os.Getenv("SLACK_API_TOKEN")
 }
@@ -49,6 +52,8 @@ func main() {
 	_usersLookup = createUsersLookup(session)
 	_channelsLookup = createChannelLookup(session)
 	_orders = []order{}
+	_searchResults = map[string][]amazonProduct{}
+	_scrollIndicies = map[string]int{}
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -61,18 +66,27 @@ func doResponse(m *slack.Message, c *slack.Client) error {
 	fullMessage := m.Text
 	message := lessMentions(fullMessage)
 
-	if user == nil || channel == nil {
+	if channel == nil {
 		return nil
 	}
 
-	logf("=> #%s - %s: %s", channel.Name, user.Name, message)
-	if isMention(fullMessage) {
-		if like(message, "^search") {
-			return doSearch(c, channel, user, message)
-		} else if likeAny(message, []string{"^order ", "^add", "^include"}) {
+	userName := "system"
+	if user != nil {
+		userName = user.Name
+	}
 
+	logf("=> #%s - %s: %s", channel.Name, userName, message)
+	if isMention(fullMessage) {
+		if likeAny(message, []string{"^search", "^find"}) {
+			return doSearch(c, channel, user, message)
+		} else if likeAny(message, []string{"^next$", "^more$"}) {
+			return doSearchNextResults(c, channel, user, message)
+		} else if likeAny(message, []string{"^order ", "^add", "^include"}) {
+			return doAddOrder(c, channel, user, message)
 		} else if likeAny(message, []string{"^orders", "^list orders", "^show orders"}) {
 			return doListOrders(c, channel, user, message)
+		} else if likeAny(message, []string{"^purge orders", "^clear orders", "^empty orders"}) {
+			return doClearOrders(c, channel, user, message)
 		} else if isSalutation(message) {
 			return doSalutation(c, channel, user, message)
 		} else {
@@ -83,20 +97,65 @@ func doResponse(m *slack.Message, c *slack.Client) error {
 }
 
 func doSearch(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
-	results := amazonFoodSearch(lessFirst(message))
+	results := amazonSearch(lessFirst(message))
 	if len(results) != 0 {
-		firstProduct := results[0]
-		return sayf(c, channel.Id, "I found the following product, it costs %s\n>%s", firstProduct.price, firstProduct.url)
+		_searchResults[user.Id] = results
+		_scrollIndicies[user.Id] = 2
+		products := results[:3]
+
+		resultsText := "I found the following product(s)\n"
+		index := 1
+		for _, product := range products {
+			resultsText = resultsText + fmt.Sprintf("> #%d (%s) %s\n", index, product.price, product.url)
+			index++
+		}
+
+		return sayf(c, channel.Id, resultsText)
 	} else {
 		return sayf(c, channel.Id, "No Results for Food Query\n>%s", message)
 	}
 }
 
+func doSearchNextResults(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
+	if results, hasResults := _searchResults[user.Id]; hasResults {
+		scrollIndex := _scrollIndicies[user.Id]
+		_scrollIndicies[user.Id] = scrollIndex + 3
+		products := results[scrollIndex : scrollIndex+3]
+		resultsText := "I also found the following product(s)\n"
+		index := scrollIndex + 1
+		for _, product := range products {
+			resultsText = resultsText + fmt.Sprintf("> #%d (%s) %s\n", index, product.price, product.url)
+			index++
+		}
+
+		return sayf(c, channel.Id, resultsText)
+	}
+	return sayf(c, channel.Id, "No Search Results for %s", user.Name)
+}
+
+func doAddOrder(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
+	itemId := util.ParseInt(last(message))
+	userId := user.Id
+
+	searchResults := _searchResults[userId]
+	result := searchResults[itemId-1]
+	addOrder(user, result)
+	return sayf(c, channel.Id, "Adding new product to order:\n>%s", result.name)
+}
+
+func doClearOrders(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
+	_orders = []order{}
+	return sayf(c, channel.Id, "Removed all orders")
+}
+
 func doListOrders(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
+	if len(_orders) == 0 {
+		return sayf(c, channel.Id, "I have no products to order.")
+	}
 	output := fmt.Sprintf("I have %d products listed to order:\n", len(_orders))
-	for _, product := range _orders {
-		user := findUser(product.ordered_by)
-		output = output + fmt.Sprintf("%s has asked that we order:\n>%s\n", user.Profile.FirstName, product.product.name)
+	for _, order := range _orders {
+		user := findUser(order.ordered_by)
+		output = output + fmt.Sprintf("%s has asked that we order:\n>%s (%s)\n", user.Profile.FirstName, order.product.name, order.product.price)
 	}
 	return sayf(c, channel.Id, output)
 }
@@ -123,11 +182,19 @@ func isSalutation(message string) bool {
 }
 
 func isAsking(message string) bool {
-	return likeAny(message, []string{"would it be possible", "can you", "would you", "is it possible"})
+	return likeAny(message, []string{"would it be possible", "can you", "would you", "is it possible", "([^.?!]*)\\?"})
 }
 
 func isPolite(message string) bool {
-	return likeAny(message, []string{"please", "thanks", "([^.?!]*)\\?"})
+	return likeAny(message, []string{"please", "thanks"})
+}
+
+func isVulgar(message string) bool {
+	return likeAny(message, []string{"fuck", "shit", "ass", "cunt"}) //yep.
+}
+
+func isAngry(message string) bool {
+	return likeAny(message, []string{"stupid", "worst", "terrible", "horrible", "cunt"}) //yep.
 }
 
 func lessMentions(message string) string {
@@ -164,6 +231,15 @@ func lessFirst(message string) string {
 	return strings.Join(queryPieces, " ")
 }
 
+func last(message string) string {
+	pieces := strings.Split(message, " ")
+	if len(pieces) != 0 {
+		return pieces[len(pieces)-1]
+	} else {
+		return ""
+	}
+}
+
 func like(corpus, expr string) bool {
 	matched, _ := regexp.Match(expr, []byte(corpus))
 	return matched
@@ -193,7 +269,17 @@ func findChannel(channelId string) *slack.Channel {
 }
 
 func addOrder(u *slack.User, product amazonProduct) {
-	_orders = append(_orders, order{timestamp: time.Now().UTC(), ordered_by: u.Id, product: product})
+	_orders = append(_orders, order{id: util.UUID_v4().ToShortString(), timestamp: time.Now().UTC(), ordered_by: u.Id, product: product})
+}
+
+func removeOrder(u *slack.User, orderId string) []order {
+	newOrders := []order{}
+	for _, order := range _orders {
+		if order.id != orderId {
+			newOrders = append(newOrders, order)
+		}
+	}
+	return newOrders
 }
 
 func createUsersLookup(session *slack.Session) map[string]slack.User {
@@ -231,6 +317,7 @@ func logf(format string, components ...interface{}) {
 }
 
 type order struct {
+	id         string
 	timestamp  time.Time
 	ordered_by string
 	product    amazonProduct
@@ -244,7 +331,7 @@ type amazonProduct struct {
 	is_prime bool
 }
 
-func amazonFoodSearch(query string) []amazonProduct {
+func amazonSearch(query string) []amazonProduct {
 	products := []amazonProduct{}
 	queryEscaped := url.QueryEscape(query)
 	queryFormat := "http://www.amazon.com/s/?field-keywords=%s"
