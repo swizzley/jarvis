@@ -5,3 +5,6 @@ WARN_COLOR=\033[33;01m
 
 run:
 	@genv -f=config.json go run main.go
+
+run-reload:
+		@reflex -r '\.go' -s -- genv -f=config.json go run main.go
