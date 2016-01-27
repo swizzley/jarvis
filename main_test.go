@@ -12,6 +12,11 @@ func TestOnTheQuarter(t *testing.T) {
 
 	s := OnTheQuarterHour{}
 
+	now := time.Now().UTC()
+	notNow := s.GetNextRunTime(nil)
+	diff := notNow.Sub(now)
+	a.True(diff > time.Millisecond)
+
 	justBeforeNoon := time.Date(2016, 01, 01, 11, 46, 00, 00, time.UTC)
 	noon := s.GetNextRunTime(&justBeforeNoon)
 	a.Equal(12, noon.Hour())

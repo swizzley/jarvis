@@ -10,21 +10,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
-	"github.com/blendlabs/go-request"
 	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/go-slack"
 )
+
+var ADMINS = []string{"isadora", "will"}
 
 var _usersLookup map[string]slack.User
 var _channelsLookup map[string]slack.Channel
 var _botId string
 var _orders []order
-
-var _searchResults map[string][]amazonProduct
-var _scrollIndicies map[string]int
 
 func TOKEN() string {
 	return os.Getenv("SLACK_API_TOKEN")
@@ -34,7 +31,7 @@ func main() {
 	client := slack.Connect(TOKEN())
 
 	client.Listen(slack.EVENT_HELLO, func(m *slack.Message, c *slack.Client) {
-		log("connected")
+		log("slack is connected")
 	})
 
 	client.Listen(slack.EVENT_MESSAGE, func(m *slack.Message, c *slack.Client) {
@@ -56,8 +53,6 @@ func main() {
 	_usersLookup = createUsersLookup(session)
 	_channelsLookup = createChannelLookup(session)
 	_orders = []order{}
-	_searchResults = map[string][]amazonProduct{}
-	_scrollIndicies = map[string]int{}
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -67,118 +62,111 @@ func main() {
 func doResponse(m *slack.Message, c *slack.Client) error {
 	user := findUser(m.User)
 	channel := findChannel(m.Channel)
-	fullMessage := m.Text
-	message := lessMentions(fullMessage)
-
-	if channel == nil {
-		return nil
-	}
 
 	userName := "system"
 	if user != nil {
 		userName = user.Name
 	}
 
-	logf("=> #%s (%s) - %s: %s", channel.Name, channel.Id, userName, message)
+	if channel != nil {
+		logf("=> #%s (%s) - %s: %s", channel.Name, channel.Id, userName, m.Text)
+	} else {
+		logf("=> PM - %s: %s", userName, m.Text)
+	}
 
-	if isMention(fullMessage) {
-		if likeAny(message, []string{"^run jobs"}) {
-			return doRunJobs(c, channel, user, message)
-		} else if likeAny(message, []string{"^search", "^find"}) {
-			return doSearch(c, channel, user, message)
-		} else if likeAny(message, []string{"^next$", "^more$"}) {
-			return doSearchNextResults(c, channel, user, message)
-		} else if likeAny(message, []string{"^order ", "^add", "^include"}) {
-			return doAddOrder(c, channel, user, message)
-		} else if likeAny(message, []string{"^orders", "^list orders", "^show orders"}) {
-			return doListOrders(c, channel, user, message)
-		} else if likeAny(message, []string{"^purge orders", "^clear orders", "^empty orders"}) {
-			return doClearOrders(c, channel, user, message)
-		} else if isSalutation(message) {
-			return doSalutation(c, channel, user, message)
-		} else {
-			return doUnknown(c, channel, user, message)
-		}
+	if isMention(m.Text) || channel == nil && isAdminUser(user.Name) {
+		return processMessage(m, c)
 	}
 	return nil
 }
 
-func doRunJobs(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
-	chronometer.Default().RunAllJobs()
-	return say(c, channel.Id, "Running Jobs")
-}
-
-func doSearch(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
-	results := amazonSearch(lessFirst(message))
-	if len(results) != 0 {
-		_searchResults[user.Id] = results
-		_scrollIndicies[user.Id] = 2
-		products := results[:3]
-
-		resultsText := "I found the following product(s)\n"
-		index := 1
-		for _, product := range products {
-			resultsText = resultsText + fmt.Sprintf("> #%d (%s) %s\n", index, product.price, product.url)
-			index++
-		}
-
-		return say(c, channel.Id, resultsText)
+func processMessage(m *slack.Message, c *slack.Client) error {
+	message := lessMentions(m.Text)
+	if likeAny(message, []string{"^order ", "^add", "^include"}) {
+		return doAddOrder(m, c)
+	} else if likeAny(message, []string{"^orders", "^list orders", "^show orders"}) {
+		return doListOrders(m, c)
+	} else if likeAny(message, []string{"^purge orders", "^clear orders", "^empty orders"}) {
+		return doClearOrders(m, c)
+	} else if isSalutation(message) {
+		return doSalutation(m, c)
+	} else if like(message, "^debug") {
+		return doDebug(m, c)
+	} else if like(message, "^time") {
+		return doTime(m, c)
 	} else {
-		return sayf(c, channel.Id, "No Results for Food Query\n>%s", message)
+		return doUnknown(m, c)
 	}
 }
 
-func doSearchNextResults(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
-	if results, hasResults := _searchResults[user.Id]; hasResults {
-		scrollIndex := _scrollIndicies[user.Id]
-		_scrollIndicies[user.Id] = scrollIndex + 3
-		products := results[scrollIndex : scrollIndex+3]
-		resultsText := "I also found the following product(s)\n"
-		index := scrollIndex + 1
-		for _, product := range products {
-			resultsText = resultsText + fmt.Sprintf("> #%d (%s) %s\n", index, product.price, product.url)
-			index++
+func doDebug(m *slack.Message, c *slack.Client) error {
+	message := lessMentions(m.Text)
+	if like(message, "^debug list channels") {
+		activeChannelsText := "Currently listening to the following channels:\n"
+		for _, channelId := range c.ActiveChannels {
+			if channel := findChannel(channelId); channel != nil {
+				activeChannelsText = activeChannelsText + fmt.Sprintf(">#%s (id:%s)\n", channel.Name, channel.Id)
+			}
 		}
-
-		return say(c, channel.Id, resultsText)
+		return say(c, m.Channel, activeChannelsText)
+	} else if like(message, "^debug jobs run") {
+		chronometer.Default().RunAllJobs()
+		return say(c, m.Channel, "Running Jobs")
+	} else if like(message, "^debug jobs next-run-times") {
+		nextRunTimes := "Here are the loaded jobs and their next run times:\n"
+		for k, v := range chronometer.Default().NextRunTimes {
+			nextRunTimes = nextRunTimes + fmt.Sprintf("> job: %s at %s", k, v.Format(time.RFC3339))
+		}
+		return say(c, m.Channel, nextRunTimes)
 	}
-	return sayf(c, channel.Id, "No Search Results for %s", user.Name)
+	return say(c, m.Channel, "I'm not sure how to run that debugging command.")
 }
 
-func doAddOrder(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
-	itemId := util.ParseInt(last(message))
-	userId := user.Id
+func doAddOrder(m *slack.Message, c *slack.Client) error {
+	messageLast := last(m.Text)
+	productUrlRaw := extractTags(messageLast)
+	productUrl, urlErr := url.Parse(productUrlRaw)
+	if urlErr != nil {
+		return say(c, m.Channel, "That is not a valid product url.")
+	}
+	if !likeAny(productUrl.Host, []string{"amazon.com$", "instacart.com$", "freshdirect.com$", "jet.com$"}) {
+		return say(c, m.Channel, "That url is not from an approved online retailer.")
+	}
 
-	searchResults := _searchResults[userId]
-	result := searchResults[itemId-1]
-	addOrder(user, result)
-	return sayf(c, channel.Id, "Adding new product to order:\n>%s", result.name)
+	addOrder(m.User, productUrl.String())
+	return sayf(c, m.Channel, "Adding new product to order:\n>%s", productUrl.String())
 }
 
-func doClearOrders(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
+func doClearOrders(m *slack.Message, c *slack.Client) error {
 	_orders = []order{}
-	return say(c, channel.Id, "Removed all orders")
+	return say(c, m.Channel, "Removed all orders")
 }
 
-func doListOrders(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
+func doListOrders(m *slack.Message, c *slack.Client) error {
 	if len(_orders) == 0 {
-		return say(c, channel.Id, "I have no products to order.")
+		return say(c, m.Channel, "I have no products to order.")
 	}
 	output := fmt.Sprintf("I have %d products listed to order:\n", len(_orders))
 	for _, order := range _orders {
-		user := findUser(order.ordered_by)
-		output = output + fmt.Sprintf("%s has asked that we order:\n>%s (%s)\n", user.Profile.FirstName, order.product.name, order.product.price)
+		user := findUser(order.orderedBy)
+		output = output + fmt.Sprintf("%s has asked that we order:\n>%s\n", user.Profile.FirstName, order.productUrl)
 	}
-	return say(c, channel.Id, output)
+	return say(c, m.Channel, output)
 }
 
-func doSalutation(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
+func doTime(m *slack.Message, c *slack.Client) error {
+	now := time.Now().UTC()
+	return announceTime(c, m.Channel, now)
+}
+
+func doSalutation(m *slack.Message, c *slack.Client) error {
+	user := findUser(m.User)
 	salutation := []string{"Hey %s", "Hi %s", "Hello %s", "Ohayo Gozaimasu %s", "Salut %s", "Bonjour %s", "yo %s", "sup %s"}
-	return sayf(c, channel.Id, random(salutation), user.Profile.FirstName)
+	return say(c, m.Channel, random(salutation), user.Profile.FirstName)
 }
 
-func doUnknown(c *slack.Client, channel *slack.Channel, user *slack.User, message string) error {
-	return sayf(c, channel.Id, "I don't know how to respond to this\n>%s", message)
+func doUnknown(m *slack.Message, c *slack.Client) error {
+	return sayf(c, m.Channel, "I don't know how to respond to this\n>%s", m.Text)
 }
 
 func random(messages []string) string {
@@ -187,6 +175,10 @@ func random(messages []string) string {
 
 func isMention(message string) bool {
 	return like(message, fmt.Sprintf("<@%s>", _botId))
+}
+
+func isAdminUser(userName string) bool {
+	return any(userName, ADMINS)
 }
 
 func isDebugChannel(channel *slack.Channel) bool {
@@ -242,6 +234,16 @@ func lessMentions(message string) string {
 	return output
 }
 
+func extractTags(message string) string {
+	output := ""
+	for _, c := range message {
+		if !(c == rune("<"[0]) || c == rune(">"[0])) {
+			output = output + string(c)
+		}
+	}
+	return output
+}
+
 func lessFirst(message string) string {
 	queryPieces := strings.Split(message, " ")[1:]
 	return strings.Join(queryPieces, " ")
@@ -270,6 +272,15 @@ func likeAny(corpus string, exprs []string) bool {
 	return false
 }
 
+func any(value string, values []string) bool {
+	for _, v := range values {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
 func findUser(userId string) *slack.User {
 	if user, hasUser := _usersLookup[userId]; hasUser {
 		return &user
@@ -284,8 +295,8 @@ func findChannel(channelId string) *slack.Channel {
 	return nil
 }
 
-func addOrder(u *slack.User, product amazonProduct) {
-	_orders = append(_orders, order{id: util.UUID_v4().ToShortString(), timestamp: time.Now().UTC(), ordered_by: u.Id, product: product})
+func addOrder(userId string, productUrl string) {
+	_orders = append(_orders, order{id: util.UUID_v4().ToShortString(), timestamp: time.Now().UTC(), orderedBy: userId, productUrl: productUrl})
 }
 
 func removeOrder(u *slack.User, orderId string) []order {
@@ -296,6 +307,28 @@ func removeOrder(u *slack.User, orderId string) []order {
 		}
 	}
 	return newOrders
+}
+
+func announceTime(c *slack.Client, channelId string, currentTime time.Time) error {
+	timeText := fmt.Sprintf("%s UTC", currentTime.Format(time.Kitchen))
+	message := slack.NewChatMessage(channelId, "")
+	message.AsUser = slack.OptionalBool(true)
+	message.UnfurlLinks = slack.OptionalBool(false)
+	message.UnfurlMedia = slack.OptionalBool(false)
+	message.Attachments = []slack.ChatMessageAttachment{
+		slack.ChatMessageAttachment{
+			Fallback: fmt.Sprintf("The time is now:\n>%s", timeText),
+			Color:    slack.OptionalString("#4099FF"),
+			Pretext:  slack.OptionalString("The time is now:"),
+			Text:     slack.OptionalString(timeText),
+		},
+	}
+
+	_, messageErr := c.ChatPostMessage(message)
+	if messageErr != nil {
+		fmt.Printf("issue posting message: %v\n", messageErr)
+	}
+	return messageErr
 }
 
 func createUsersLookup(session *slack.Session) map[string]slack.User {
@@ -316,16 +349,25 @@ func createChannelLookup(session *slack.Session) map[string]slack.Channel {
 	return lookup
 }
 
-func say(c *slack.Client, channelId string, components ...interface{}) error {
-	channel := findChannel(channelId)
-	logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprint(components...))
-	return c.Say(channelId, components...)
+func say(c *slack.Client, destinationId string, components ...interface{}) error {
+	if like(destinationId, "^C") {
+		channel := findChannel(destinationId)
+		logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprint(components...))
+	} else {
+		logf("<= PM - jarvis: %s", fmt.Sprint(components...))
+	}
+
+	return c.Say(destinationId, components...)
 }
 
-func sayf(c *slack.Client, channelId, format string, components ...interface{}) error {
-	channel := findChannel(channelId)
-	logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprintf(format, components...))
-	return c.Sayf(channelId, format, components...)
+func sayf(c *slack.Client, destinationId string, format string, components ...interface{}) error {
+	if like(destinationId, "^C") {
+		channel := findChannel(destinationId)
+		logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprintf(format, components...))
+	} else {
+		logf("<= PM - jarvis: %s", fmt.Sprintf(format, components...))
+	}
+	return c.Sayf(destinationId, format, components...)
 }
 
 func log(components ...interface{}) {
@@ -341,97 +383,38 @@ func logf(format string, components ...interface{}) {
 type order struct {
 	id         string
 	timestamp  time.Time
-	ordered_by string
-	product    amazonProduct
-}
-
-type amazonProduct struct {
-	id       string
-	name     string
-	price    string
-	url      string
-	is_prime bool
-}
-
-func amazonSearch(query string) []amazonProduct {
-	products := []amazonProduct{}
-
-	results, fetchErr := request.NewRequest().
-		AsGet().
-		WithHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36").
-		WithScheme("http").
-		WithHost("www.amazon.com").
-		WithPath("s/").
-		WithQueryString("field-keywords", query).
-		FetchString()
-	if fetchErr != nil {
-		log(fetchErr)
-		return products
-	}
-
-	if util.IsEmpty(results) {
-		return products
-	}
-
-	doc, docErr := goquery.NewDocumentFromReader(strings.NewReader(results))
-
-	if docErr != nil {
-		log(docErr)
-		return products
-	}
-
-	doc.Find("li.s-result-item").Each(func(i int, s *goquery.Selection) {
-		link := s.Find("a.s-access-detail-page").First()
-		price := s.Find("span.a-color-price").First()
-		prime := s.Find("i.a-icon-prime").First()
-
-		href, _ := link.Attr("href")
-
-		_, urlErr := url.Parse(href)
-		if urlErr != nil {
-			return
-		}
-
-		product := amazonProduct{}
-		product.id = util.UUID_v4().ToShortString()
-		product.url = href
-		product.name = link.Text()
-		product.price = price.Text()
-		product.is_prime = prime != nil
-
-		if product.is_prime {
-			products = append(products, product)
-		}
-	})
-
-	return products
+	orderedBy  string `json:"ordered_by"`
+	productUrl string `json:"product_url"`
 }
 
 type OnTheQuarterHour struct{}
 
 func (o OnTheQuarterHour) GetNextRunTime(after *time.Time) time.Time {
+	var returnValue time.Time
 	if after == nil {
 		now := time.Now().UTC()
 		if now.Minute() >= 45 {
-			return time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 45, 0, 0, time.UTC).Add(15 * time.Minute)
+			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 45, 0, 0, time.UTC).Add(15 * time.Minute)
 		} else if now.Minute() >= 30 {
-			return time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 30, 0, 0, time.UTC).Add(15 * time.Minute)
+			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 30, 0, 0, time.UTC).Add(15 * time.Minute)
 		} else if now.Minute() >= 15 {
-			return time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 15, 0, 0, time.UTC).Add(15 * time.Minute)
+			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 15, 0, 0, time.UTC).Add(15 * time.Minute)
 		} else {
-			return time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC).Add(15 * time.Minute)
+			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC).Add(15 * time.Minute)
 		}
 	} else {
+
 		if after.Minute() >= 45 {
-			return time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 45, 0, 0, time.UTC).Add(15 * time.Minute)
+			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 45, 0, 0, time.UTC).Add(15 * time.Minute)
 		} else if after.Minute() >= 30 {
-			return time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 30, 0, 0, time.UTC).Add(15 * time.Minute)
+			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 30, 0, 0, time.UTC).Add(15 * time.Minute)
 		} else if after.Minute() >= 15 {
-			return time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 15, 0, 0, time.UTC).Add(15 * time.Minute)
+			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 15, 0, 0, time.UTC).Add(15 * time.Minute)
 		} else {
-			return time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 0, 0, 0, time.UTC).Add(15 * time.Minute)
+			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 0, 0, 0, time.UTC).Add(15 * time.Minute)
 		}
 	}
+	return returnValue
 }
 
 type TimeJob struct {
@@ -443,35 +426,14 @@ func (t TimeJob) Name() string {
 }
 
 func (t TimeJob) Execute(ct *chronometer.CancellationToken) error {
+	logf("job `%s` running", t.Name())
 	currentTime := time.Now().UTC()
 
 	for x := 0; x < len(t.Client.ActiveChannels); x++ {
 		channelId := t.Client.ActiveChannels[x]
-		return t.announceTime(channelId, currentTime)
+		return announceTime(t.Client, channelId, currentTime)
 	}
 	return nil
-}
-
-func (t TimeJob) announceTime(channelId string, currentTime time.Time) error {
-	timeText := fmt.Sprintf("%d:%d UTC", currentTime.Hour(), currentTime.Minute())
-	message := slack.NewChatMessage(channelId, "")
-	message.AsUser = slack.OptionalBool(true)
-	message.UnfurlLinks = slack.OptionalBool(false)
-	message.UnfurlMedia = slack.OptionalBool(false)
-	message.Attachments = []slack.ChatMessageAttachment{
-		slack.ChatMessageAttachment{
-			Fallback: fmt.Sprintf("The time is now:\n>%s", timeText),
-			Color:    slack.OptionalString("#4099FF"),
-			Pretext:  slack.OptionalString("The time is now:"),
-			Text:     slack.OptionalString(timeText),
-		},
-	}
-
-	_, messageErr := t.Client.ChatPostMessage(message)
-	if messageErr != nil {
-		fmt.Printf("issue posting message: %v\n", messageErr)
-	}
-	return messageErr
 }
 
 func (t TimeJob) Schedule() chronometer.Schedule {
