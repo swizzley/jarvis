@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/blendlabs/go-chronometer"
@@ -54,9 +54,30 @@ func main() {
 	_channelsLookup = createChannelLookup(session)
 	_orders = []order{}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	wg.Wait()
+	startStatusServer(client)
+}
+
+func startStatusServer(c *slack.Client) {
+	http.HandleFunc("/", injectClient(c, statusHandler))
+	logf("starting status server, listening on: %s", os.Getenv("PORT"))
+	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+}
+
+func injectClient(c *slack.Client, h clientAwareHttpHandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h(c, w, r)
+	}
+}
+
+type clientAwareHttpHandlerFunc func(c *slack.Client, w http.ResponseWriter, r *http.Request)
+
+func statusHandler(c *slack.Client, w http.ResponseWriter, r *http.Request) {
+	statusText := "Jarvis is running and listening to the following channels:\n"
+	for _, channelId := range c.ActiveChannels {
+		channel := findChannel(channelId)
+		statusText = statusText + fmt.Sprintf("> #%s (%s)\n", channel.Name, channel.Id)
+	}
+	fmt.Fprintf(w, statusText)
 }
 
 func doResponse(m *slack.Message, c *slack.Client) error {
