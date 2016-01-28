@@ -95,7 +95,7 @@ func doResponse(m *slack.Message, c *slack.Client) error {
 		logf("=> PM - %s: %s", userName, m.Text)
 	}
 
-	if isMention(m.Text) || channel == nil && isAdminUser(user.Name) {
+	if m.User != _botId && (isMention(m.Text) || (isDM(m.Channel) && isAdminUser(user.Name))) {
 		return processMessage(m, c)
 	}
 	return nil
@@ -192,6 +192,14 @@ func doUnknown(m *slack.Message, c *slack.Client) error {
 
 func random(messages []string) string {
 	return messages[rand.Intn(len(messages))]
+}
+
+func isDM(channelId string) bool {
+	return strings.HasPrefix(m.Channel, "D")
+}
+
+func isChannel(channelId string) bool {
+	return strings.HasPrefix(m.Channel, "C")
 }
 
 func isMention(message string) bool {
