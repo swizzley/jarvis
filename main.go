@@ -183,7 +183,7 @@ func doTime(m *slack.Message, c *slack.Client) error {
 func doSalutation(m *slack.Message, c *slack.Client) error {
 	user := findUser(m.User)
 	salutation := []string{"Hey %s", "Hi %s", "Hello %s", "Ohayo Gozaimasu %s", "Salut %s", "Bonjour %s", "yo %s", "sup %s"}
-	return say(c, m.Channel, random(salutation), user.Profile.FirstName)
+	return sayf(c, m.Channel, random(salutation), user.Profile.FirstName)
 }
 
 func doUnknown(m *slack.Message, c *slack.Client) error {
