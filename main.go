@@ -16,7 +16,7 @@ import (
 	"github.com/wcharczuk/go-slack"
 )
 
-var ADMINS = []string{"isadora", "will"}
+var ADMINS = []string{"will"}
 
 var _usersLookup map[string]slack.User
 var _channelsLookup map[string]slack.Channel
