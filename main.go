@@ -47,6 +47,7 @@ func main() {
 	session, err := client.Start()
 	if err != nil {
 		fmt.Printf("%v\n", err)
+		return
 	}
 
 	_botId = session.Self.Id
