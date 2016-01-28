@@ -207,7 +207,7 @@ func isDebugChannel(channel *slack.Channel) bool {
 }
 
 func isSalutation(message string) bool {
-	return likeAny(message, []string{"^hello", "^hi", "^greetings", "^hey"})
+	return likeAny(message, []string{"^hello", "^hi", "^greetings", "^hey", "^yo"})
 }
 
 func isAsking(message string) bool {
@@ -280,6 +280,9 @@ func last(message string) string {
 }
 
 func like(corpus, expr string) bool {
+	if !strings.HasPrefix(expr, "(?i)") {
+		expr = "(?i)" + expr
+	}
 	matched, _ := regexp.Match(expr, []byte(corpus))
 	return matched
 }
