@@ -195,11 +195,11 @@ func random(messages []string) string {
 }
 
 func isDM(channelId string) bool {
-	return strings.HasPrefix(m.Channel, "D")
+	return strings.HasPrefix(channelId, "D")
 }
 
 func isChannel(channelId string) bool {
-	return strings.HasPrefix(m.Channel, "C")
+	return strings.HasPrefix(channelId, "C")
 }
 
 func isMention(message string) bool {
