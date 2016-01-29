@@ -21,7 +21,7 @@ func (db *ConfigDb) InitFromEnvironment() {
 	db.Schema = os.Getenv("DB_SCHEMA")
 	db.User = os.Getenv("DB_USER")
 	db.Password = os.Getenv("DB_PASSWORD")
-	db.DSN = os.Getenv("DB_DSN")
+	db.DSN = os.Getenv("DATABASE_URL")
 }
 
 func (db *ConfigDb) AsPostgresConnectionString() string {
