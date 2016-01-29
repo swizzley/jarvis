@@ -44,6 +44,11 @@ func (o MarketHours) GetNextRunTime(after *time.Time) time.Time {
 			returnValue = marketStart.AddDate(0, 0, 1)
 		}
 	}
+
+	for returnValue.Weekday() == time.Saturday || returnValue.Weekday() == time.Sunday {
+		returnValue = returnValue.AddDate(0, 0, 1)
+	}
+
 	return returnValue
 }
 

@@ -15,7 +15,7 @@ func TestMarketHours(t *testing.T) {
 	after := time.Date(2016, 1, 29, 22, 0, 0, 0, time.UTC)
 
 	marketStart := marketStartUtc(before)
-	marketStartTomorrow := marketStart.AddDate(0, 0, 1)
+	marketStartMonday := marketStart.AddDate(0, 0, 3)
 
 	s := MarketHours{}
 
@@ -25,6 +25,6 @@ func TestMarketHours(t *testing.T) {
 	shouldBeDuring := s.GetNextRunTime(&during)
 	a.InTimeDelta(during, shouldBeDuring, 1*time.Hour)
 
-	shouldBeMarketStartTomorrow := s.GetNextRunTime(&after)
-	a.InTimeDelta(marketStartTomorrow, shouldBeMarketStartTomorrow, 1*time.Second)
+	shouldBeMarketStartMonday := s.GetNextRunTime(&after)
+	a.InTimeDelta(marketStartMonday, shouldBeMarketStartMonday, 1*time.Second)
 }
