@@ -2,11 +2,8 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
-	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -14,14 +11,34 @@ import (
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/go-slack"
+	"github.com/wcharczuk/jarvis/lib"
+	"github.com/wcharczuk/jarvis/lib/jobs"
 )
-
-var ADMINS = []string{"will"}
 
 var _usersLookup map[string]slack.User
 var _channelsLookup map[string]slack.Channel
 var _botId string
-var _orders []order
+
+type messageHandler func(m *slack.Message, c *slack.Client) error
+
+type action struct {
+	expr    string
+	handler messageHandler
+}
+
+var commands = []action{
+	action{"^time", doTime},
+	action{"^debug:channels", doDebugChannels},
+	action{"^jobs", doJobsStatus},
+	action{"^job:run", doJobsRun},
+	action{"^job:cancel", doJobsCancel},
+	action{"^stock:price", doStockPrice},
+	action{"^stock:track", doStockTrack},
+	action{"^stock:remove", doStockRemove},
+	action{"^stocks:price", doStocksPrice},
+	action{"^stocks", doStocks},
+	action{"(.*)", doOtherResponse},
+}
 
 func TOKEN() string {
 	return os.Getenv("SLACK_API_TOKEN")
@@ -41,7 +58,8 @@ func main() {
 		}
 	})
 
-	chronometer.Default().LoadJob(TimeJob{Client: client})
+	chronometer.Default().LoadJob(&jobs.Stocks{Client: client, Tickers: []string{}})
+	chronometer.Default().LoadJob(&jobs.Clock{Client: client})
 	chronometer.Default().Start()
 
 	session, err := client.Start()
@@ -53,7 +71,6 @@ func main() {
 	_botId = session.Self.Id
 	_usersLookup = createUsersLookup(session)
 	_channelsLookup = createChannelLookup(session)
-	_orders = []order{}
 
 	startStatusServer(client)
 }
@@ -82,6 +99,184 @@ func statusHandler(c *slack.Client, w http.ResponseWriter, r *http.Request) {
 }
 
 func doResponse(m *slack.Message, c *slack.Client) error {
+	logIncomingMessage(m, c)
+	if m.User != "slackbot" && m.User != _botId && (lib.IsMention(m.Text, _botId) || (lib.IsDM(m.Channel))) {
+		messageText := util.TrimWhitespace(lib.LessMentions(m.Text))
+		for _, actionHandler := range commands {
+			if lib.Like(messageText, actionHandler.expr) {
+				return actionHandler.handler(m, c)
+			}
+		}
+	}
+	return nil
+}
+
+func doTime(m *slack.Message, c *slack.Client) error {
+	now := time.Now().UTC()
+	return lib.AnnounceTime(c, m.Channel, now)
+}
+
+func doDebugChannels(m *slack.Message, c *slack.Client) error {
+	if len(c.ActiveChannels) == 0 {
+		return say(c, m.Channel, "currently listening to *no* channels.")
+	}
+	activeChannelsText := "currently listening to the following channels:\n"
+	for _, channelId := range c.ActiveChannels {
+		if channel := findChannel(channelId); channel != nil {
+			activeChannelsText = activeChannelsText + fmt.Sprintf(">#%s (id:%s)\n", channel.Name, channel.Id)
+		}
+	}
+	return say(c, m.Channel, activeChannelsText)
+}
+
+func doJobsStatus(m *slack.Message, c *slack.Client) error {
+	statusText := "current job statuses:\n"
+	for _, status := range chronometer.Default().Status() {
+		if len(status.RunningFor) != 0 {
+			statusText = statusText + fmt.Sprintf(">`%s` - state: %s running for: %s\n", status.Name, status.State, status.RunningFor)
+		} else {
+			statusText = statusText + fmt.Sprintf(">`%s` - state: %s\n", status.Name, status.State)
+		}
+	}
+	return say(c, m.Channel, statusText)
+}
+
+func doJobsRun(m *slack.Message, c *slack.Client) error {
+	messageWithoutMentions := util.TrimWhitespace(lib.LessMentions(m.Text))
+	pieces := strings.Split(messageWithoutMentions, " ")
+	if len(pieces) > 1 {
+		jobName := pieces[len(pieces)-1]
+		chronometer.Default().RunJob(jobName)
+		return sayf(c, m.Channel, "ran job `%s`", jobName)
+	} else {
+		chronometer.Default().RunAllJobs()
+		return say(c, m.Channel, "ran all jobs")
+	}
+}
+
+func doJobsCancel(m *slack.Message, c *slack.Client) error {
+	messageWithoutMentions := util.TrimWhitespace(lib.LessMentions(m.Text))
+	pieces := strings.Split(messageWithoutMentions, " ")
+	if len(pieces) > 1 {
+		taskName := pieces[len(pieces)-1]
+		chronometer.Default().CancelTask(taskName)
+		return sayf(c, m.Channel, "canceled task `%s`", taskName)
+	}
+	return doUnknown(m, c)
+}
+
+func doStocks(m *slack.Message, c *slack.Client) error {
+	if job, hasJob := chronometer.Default().LoadedJobs["stocks"]; hasJob {
+		if typedJob, isStocksJob := job.(*jobs.Stocks); isStocksJob {
+			if len(typedJob.Tickers) == 0 {
+				return say(c, m.Channel, "currently tracking *no* stocks.")
+			}
+			tickersLabels := []string{}
+			for _, stock := range typedJob.Tickers {
+				tickersLabels = append(tickersLabels, fmt.Sprintf("`%s`", stock))
+			}
+			tickersLabel := strings.Join(tickersLabels, " ")
+			stocksText := fmt.Sprintf("currently tracking the following stocks: %s", tickersLabel)
+			return say(c, m.Channel, stocksText)
+		}
+	}
+	return doUnknown(m, c)
+}
+
+func doStocksPrice(m *slack.Message, c *slack.Client) error {
+	if job, hasJob := chronometer.Default().LoadedJobs["stocks"]; hasJob {
+		if typedJob, isStocksJob := job.(*jobs.Stocks); isStocksJob {
+			if len(typedJob.Tickers) == 0 {
+				return say(c, m.Channel, "currently tracking *no* stocks.")
+			}
+			stockInfo, stockErr := lib.StockPrice(typedJob.Tickers, lib.STOCK_DEFAULT_FORMAT)
+			if stockErr != nil {
+				return stockErr
+			}
+			return lib.AnnounceStocks(c, m.Channel, stockInfo)
+		}
+	}
+	return doUnknown(m, c)
+}
+
+func doStockPrice(m *slack.Message, c *slack.Client) error {
+	messageWithoutMentions := util.TrimWhitespace(lib.LessMentions(m.Text))
+	pieces := strings.Split(messageWithoutMentions, " ")
+	if len(pieces) > 1 {
+		rawTicker := pieces[len(pieces)-1]
+		tickers := []string{}
+		if strings.Contains(rawTicker, ",") {
+			tickers = strings.Split(rawTicker, ",")
+		} else {
+			tickers = []string{rawTicker}
+		}
+		stockInfo, stockErr := lib.StockPrice(tickers, lib.STOCK_DEFAULT_FORMAT)
+		if stockErr != nil {
+			return stockErr
+		}
+		return lib.AnnounceStocks(c, m.Channel, stockInfo)
+	}
+	return doUnknown(m, c)
+}
+
+func doStockTrack(m *slack.Message, c *slack.Client) error {
+	messageWithoutMentions := util.TrimWhitespace(lib.LessMentions(m.Text))
+	pieces := strings.Split(messageWithoutMentions, " ")
+	ticker := pieces[len(pieces)-1]
+
+	if job, hasJob := chronometer.Default().LoadedJobs["stocks"]; hasJob {
+		if typedJob, isStocksJob := job.(*jobs.Stocks); isStocksJob {
+			typedJob.Track(ticker)
+			return sayf(c, m.Channel, "tracking `%s`", ticker)
+		} else {
+			logf("job `%s` is of type %#v", "stocks", job)
+			return sayf(c, m.Channel, "job `%s` could not be marshalled", "stocks")
+		}
+	} else {
+		return sayf(c, m.Channel, "job `%s` is not loaded", "stocks")
+	}
+	return doUnknown(m, c)
+}
+
+func doStockRemove(m *slack.Message, c *slack.Client) error {
+	messageWithoutMentions := util.TrimWhitespace(lib.LessMentions(m.Text))
+	pieces := strings.Split(messageWithoutMentions, " ")
+	ticker := pieces[len(pieces)-1]
+
+	if job, hasJob := chronometer.Default().LoadedJobs["stocks"]; hasJob {
+		if typedJob, isStocksJob := job.(*jobs.Stocks); isStocksJob {
+			typedJob.StopTracking(ticker)
+			return sayf(c, m.Channel, "stopped tracking `%s`", ticker)
+		} else {
+			logf("job `%s` is of type %#v", "stocks", job)
+			return sayf(c, m.Channel, "job `%s` could not be marshalled", "stocks")
+		}
+	} else {
+		return sayf(c, m.Channel, "job `%s` is not loaded", "stocks")
+	}
+	return doUnknown(m, c)
+}
+
+func doOtherResponse(m *slack.Message, c *slack.Client) error {
+	message := util.TrimWhitespace(lib.LessMentions(m.Text))
+	if lib.IsSalutation(message) {
+		return doSalutation(m, c)
+	} else {
+		return doUnknown(m, c)
+	}
+}
+
+func doSalutation(m *slack.Message, c *slack.Client) error {
+	user := findUser(m.User)
+	salutation := []string{"hey %s", "hi %s", "hello %s", "ohayo gozaimasu %s", "salut %s", "bonjour %s", "yo %s", "sup %s"}
+	return sayf(c, m.Channel, lib.Random(salutation), strings.ToLower(user.Profile.FirstName))
+}
+
+func doUnknown(m *slack.Message, c *slack.Client) error {
+	return sayf(c, m.Channel, "I don't know how to respond to this\n>%s", m.Text)
+}
+
+func logIncomingMessage(m *slack.Message, c *slack.Client) {
 	user := findUser(m.User)
 	channel := findChannel(m.Channel)
 
@@ -95,223 +290,15 @@ func doResponse(m *slack.Message, c *slack.Client) error {
 	} else {
 		logf("=> PM - %s: %s", userName, m.Text)
 	}
-
-	if m.User != _botId && (isMention(m.Text) || (isDM(m.Channel) && isAdminUser(user.Name))) {
-		return processMessage(m, c)
-	}
-	return nil
 }
 
-func processMessage(m *slack.Message, c *slack.Client) error {
-	message := lessMentions(m.Text)
-	if likeAny(message, []string{"^order ", "^add", "^include"}) {
-		return doAddOrder(m, c)
-	} else if likeAny(message, []string{"^orders", "^list orders", "^show orders"}) {
-		return doListOrders(m, c)
-	} else if likeAny(message, []string{"^purge orders", "^clear orders", "^empty orders"}) {
-		return doClearOrders(m, c)
-	} else if isSalutation(message) {
-		return doSalutation(m, c)
-	} else if like(message, "^debug") {
-		return doDebug(m, c)
-	} else if like(message, "^time") {
-		return doTime(m, c)
+func logOutgoingMessage(c *slack.Client, destinationId string, components ...interface{}) {
+	if lib.Like(destinationId, "^C") {
+		channel := findChannel(destinationId)
+		logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprint(components...))
 	} else {
-		return doUnknown(m, c)
+		logf("<= PM - jarvis: %s", fmt.Sprint(components...))
 	}
-}
-
-func doDebug(m *slack.Message, c *slack.Client) error {
-	message := lessMentions(m.Text)
-	if like(message, "^debug list channels") {
-		activeChannelsText := "Currently listening to the following channels:\n"
-		for _, channelId := range c.ActiveChannels {
-			if channel := findChannel(channelId); channel != nil {
-				activeChannelsText = activeChannelsText + fmt.Sprintf(">#%s (id:%s)\n", channel.Name, channel.Id)
-			}
-		}
-		return say(c, m.Channel, activeChannelsText)
-	} else if like(message, "^debug jobs run") {
-		chronometer.Default().RunAllJobs()
-		return say(c, m.Channel, "Running Jobs")
-	} else if like(message, "^debug jobs next-run-times") {
-		nextRunTimes := "Here are the loaded jobs and their next run times:\n"
-		for k, v := range chronometer.Default().NextRunTimes {
-			nextRunTimes = nextRunTimes + fmt.Sprintf("> job: %s at %s", k, v.Format(time.RFC3339))
-		}
-		return say(c, m.Channel, nextRunTimes)
-	}
-	return say(c, m.Channel, "I'm not sure how to run that debugging command.")
-}
-
-func doAddOrder(m *slack.Message, c *slack.Client) error {
-	messageLast := last(m.Text)
-	productUrlRaw := extractTags(messageLast)
-	productUrl, urlErr := url.Parse(productUrlRaw)
-	if urlErr != nil {
-		return say(c, m.Channel, "That is not a valid product url.")
-	}
-	if !likeAny(productUrl.Host, []string{"amazon.com$", "instacart.com$", "freshdirect.com$", "jet.com$"}) {
-		return say(c, m.Channel, "That url is not from an approved online retailer.")
-	}
-
-	addOrder(m.User, productUrl.String())
-	return sayf(c, m.Channel, "Adding new product to order:\n>%s", productUrl.String())
-}
-
-func doClearOrders(m *slack.Message, c *slack.Client) error {
-	_orders = []order{}
-	return say(c, m.Channel, "Removed all orders")
-}
-
-func doListOrders(m *slack.Message, c *slack.Client) error {
-	if len(_orders) == 0 {
-		return say(c, m.Channel, "I have no products to order.")
-	}
-	output := fmt.Sprintf("I have %d products listed to order:\n", len(_orders))
-	for _, order := range _orders {
-		user := findUser(order.orderedBy)
-		output = output + fmt.Sprintf("%s has asked that we order:\n>%s\n", user.Profile.FirstName, order.productUrl)
-	}
-	return say(c, m.Channel, output)
-}
-
-func doTime(m *slack.Message, c *slack.Client) error {
-	now := time.Now().UTC()
-	return announceTime(c, m.Channel, now)
-}
-
-func doSalutation(m *slack.Message, c *slack.Client) error {
-	user := findUser(m.User)
-	salutation := []string{"Hey %s", "Hi %s", "Hello %s", "Ohayo Gozaimasu %s", "Salut %s", "Bonjour %s", "yo %s", "sup %s"}
-	return sayf(c, m.Channel, random(salutation), user.Profile.FirstName)
-}
-
-func doUnknown(m *slack.Message, c *slack.Client) error {
-	return sayf(c, m.Channel, "I don't know how to respond to this\n>%s", m.Text)
-}
-
-func random(messages []string) string {
-	return messages[rand.Intn(len(messages))]
-}
-
-func isDM(channelId string) bool {
-	return strings.HasPrefix(channelId, "D")
-}
-
-func isChannel(channelId string) bool {
-	return strings.HasPrefix(channelId, "C")
-}
-
-func isMention(message string) bool {
-	return like(message, fmt.Sprintf("<@%s>", _botId))
-}
-
-func isAdminUser(userName string) bool {
-	return any(userName, ADMINS)
-}
-
-func isDebugChannel(channel *slack.Channel) bool {
-	return like(channel.Name, "bot-test")
-}
-
-func isSalutation(message string) bool {
-	return likeAny(message, []string{"^hello", "^hi", "^greetings", "^hey", "^yo"})
-}
-
-func isAsking(message string) bool {
-	return likeAny(message, []string{"would it be possible", "can you", "would you", "is it possible", "([^.?!]*)\\?"})
-}
-
-func isPolite(message string) bool {
-	return likeAny(message, []string{"please", "thanks"})
-}
-
-func isVulgar(message string) bool {
-	return likeAny(message, []string{"fuck", "shit", "ass", "cunt"}) //yep.
-}
-
-func isAngry(message string) bool {
-	return likeAny(message, []string{"stupid", "worst", "terrible", "horrible", "cunt"}) //yep.
-}
-
-func lessMentions(message string) string {
-	output := ""
-	state := 0
-	for _, c := range message {
-		switch state {
-		case 0:
-			if c == rune("<"[0]) {
-				state = 1
-			} else {
-				output = output + string(c)
-			}
-		case 1:
-			if c == rune(">"[0]) {
-				state = 2
-			}
-		case 2:
-			if c == rune(":"[0]) {
-				state = 2
-			} else if c == rune(" "[0]) {
-				state = 0
-			} else {
-				state = 0
-				output = output + string(c)
-			}
-		}
-	}
-	return output
-}
-
-func extractTags(message string) string {
-	output := ""
-	for _, c := range message {
-		if !(c == rune("<"[0]) || c == rune(">"[0])) {
-			output = output + string(c)
-		}
-	}
-	return output
-}
-
-func lessFirst(message string) string {
-	queryPieces := strings.Split(message, " ")[1:]
-	return strings.Join(queryPieces, " ")
-}
-
-func last(message string) string {
-	pieces := strings.Split(message, " ")
-	if len(pieces) != 0 {
-		return pieces[len(pieces)-1]
-	} else {
-		return ""
-	}
-}
-
-func like(corpus, expr string) bool {
-	if !strings.HasPrefix(expr, "(?i)") {
-		expr = "(?i)" + expr
-	}
-	matched, _ := regexp.Match(expr, []byte(corpus))
-	return matched
-}
-
-func likeAny(corpus string, exprs []string) bool {
-	for _, expr := range exprs {
-		if like(corpus, expr) {
-			return true
-		}
-	}
-	return false
-}
-
-func any(value string, values []string) bool {
-	for _, v := range values {
-		if v == value {
-			return true
-		}
-	}
-	return false
 }
 
 func findUser(userId string) *slack.User {
@@ -326,42 +313,6 @@ func findChannel(channelId string) *slack.Channel {
 		return &channel
 	}
 	return nil
-}
-
-func addOrder(userId string, productUrl string) {
-	_orders = append(_orders, order{id: util.UUID_v4().ToShortString(), timestamp: time.Now().UTC(), orderedBy: userId, productUrl: productUrl})
-}
-
-func removeOrder(u *slack.User, orderId string) []order {
-	newOrders := []order{}
-	for _, order := range _orders {
-		if order.id != orderId {
-			newOrders = append(newOrders, order)
-		}
-	}
-	return newOrders
-}
-
-func announceTime(c *slack.Client, channelId string, currentTime time.Time) error {
-	timeText := fmt.Sprintf("%s UTC", currentTime.Format(time.Kitchen))
-	message := slack.NewChatMessage(channelId, "")
-	message.AsUser = slack.OptionalBool(true)
-	message.UnfurlLinks = slack.OptionalBool(false)
-	message.UnfurlMedia = slack.OptionalBool(false)
-	message.Attachments = []slack.ChatMessageAttachment{
-		slack.ChatMessageAttachment{
-			Fallback: fmt.Sprintf("The time is now:\n>%s", timeText),
-			Color:    slack.OptionalString("#4099FF"),
-			Pretext:  slack.OptionalString("The time is now:"),
-			Text:     slack.OptionalString(timeText),
-		},
-	}
-
-	_, messageErr := c.ChatPostMessage(message)
-	if messageErr != nil {
-		fmt.Printf("issue posting message: %v\n", messageErr)
-	}
-	return messageErr
 }
 
 func createUsersLookup(session *slack.Session) map[string]slack.User {
@@ -383,23 +334,13 @@ func createChannelLookup(session *slack.Session) map[string]slack.Channel {
 }
 
 func say(c *slack.Client, destinationId string, components ...interface{}) error {
-	if like(destinationId, "^C") {
-		channel := findChannel(destinationId)
-		logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprint(components...))
-	} else {
-		logf("<= PM - jarvis: %s", fmt.Sprint(components...))
-	}
-
+	logOutgoingMessage(c, destinationId, components...)
 	return c.Say(destinationId, components...)
 }
 
 func sayf(c *slack.Client, destinationId string, format string, components ...interface{}) error {
-	if like(destinationId, "^C") {
-		channel := findChannel(destinationId)
-		logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprintf(format, components...))
-	} else {
-		logf("<= PM - jarvis: %s", fmt.Sprintf(format, components...))
-	}
+	message := fmt.Sprintf(format, components...)
+	logOutgoingMessage(c, destinationId, message)
 	return c.Sayf(destinationId, format, components...)
 }
 
@@ -411,66 +352,6 @@ func log(components ...interface{}) {
 func logf(format string, components ...interface{}) {
 	message := fmt.Sprintf(format, components...)
 	fmt.Printf("%s - %s\n", time.Now().UTC().Format(time.RFC3339), message)
-}
-
-type order struct {
-	id         string
-	timestamp  time.Time
-	orderedBy  string `json:"ordered_by"`
-	productUrl string `json:"product_url"`
-}
-
-type OnTheQuarterHour struct{}
-
-func (o OnTheQuarterHour) GetNextRunTime(after *time.Time) time.Time {
-	var returnValue time.Time
-	if after == nil {
-		now := time.Now().UTC()
-		if now.Minute() >= 45 {
-			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 45, 0, 0, time.UTC).Add(15 * time.Minute)
-		} else if now.Minute() >= 30 {
-			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 30, 0, 0, time.UTC).Add(15 * time.Minute)
-		} else if now.Minute() >= 15 {
-			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 15, 0, 0, time.UTC).Add(15 * time.Minute)
-		} else {
-			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC).Add(15 * time.Minute)
-		}
-	} else {
-
-		if after.Minute() >= 45 {
-			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 45, 0, 0, time.UTC).Add(15 * time.Minute)
-		} else if after.Minute() >= 30 {
-			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 30, 0, 0, time.UTC).Add(15 * time.Minute)
-		} else if after.Minute() >= 15 {
-			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 15, 0, 0, time.UTC).Add(15 * time.Minute)
-		} else {
-			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 0, 0, 0, time.UTC).Add(15 * time.Minute)
-		}
-	}
-	return returnValue
-}
-
-type TimeJob struct {
-	Client *slack.Client
-}
-
-func (t TimeJob) Name() string {
-	return "Clock"
-}
-
-func (t TimeJob) Execute(ct *chronometer.CancellationToken) error {
-	logf("job `%s` running", t.Name())
-	currentTime := time.Now().UTC()
-
-	for x := 0; x < len(t.Client.ActiveChannels); x++ {
-		channelId := t.Client.ActiveChannels[x]
-		return announceTime(t.Client, channelId, currentTime)
-	}
-	return nil
-}
-
-func (t TimeJob) Schedule() chronometer.Schedule {
-	return OnTheQuarterHour{}
 }
 
 func writeToFile(path, contents string) error {
