@@ -3,10 +3,6 @@
 	"GoVersion": "go1.5.3",
 	"Deps": [
 		{
-			"ImportPath": "github.com/blendlabs/go-assert",
-			"Rev": "ab363c0f84df2b6fc6bf0bfa14b7e616192d687c"
-		},
-		{
 			"ImportPath": "github.com/blendlabs/go-chronometer",
 			"Rev": "4c7c5ca9f319f2484b7b4b1d5b877ebaf411bf1d"
 		},
@@ -23,8 +19,18 @@
 			"Rev": "d8a2ca0aed8a72535be866975814fc115019f218"
 		},
 		{
+			"ImportPath": "github.com/blendlabs/spiffy",
+			"Comment": "v1.0-45-g3777266",
+			"Rev": "3777266315e0ad78ff4a3bd6643c86b0909be3f3"
+		},
+		{
 			"ImportPath": "github.com/gorilla/websocket",
 			"Rev": "5434f8b69b7f4f4ef0120e04c046cd6ce54ef0dd"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "go1.0-cutoff-61-g83c4f41",
+			"Rev": "83c4f410d0aed80a0f44bac6a576a7f2435791f3"
 		},
 		{
 			"ImportPath": "github.com/wcharczuk/go-slack",
