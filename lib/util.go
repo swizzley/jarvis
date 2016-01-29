@@ -80,7 +80,7 @@ func AnnounceStocks(c *slack.Client, destinationId string, stockInfo []StockInfo
 	stockText := fmt.Sprintf("current equity price info for %s\n", tickersLabel)
 	for _, stock := range stockInfo {
 		if stock.Values != nil && len(stock.Values) > 2 {
-			stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%.2f* ch: *%.2f*% \n", stock.Ticker, stock.Values[0], stock.Values[1], stock.Values[2])
+			stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%.2f* ch: *%.2f*%% \n", stock.Ticker, stock.Values[0], stock.Values[1], stock.Values[2])
 		}
 	}
 	return c.Say(destinationId, stockText)
