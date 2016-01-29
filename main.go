@@ -58,14 +58,21 @@ func main() {
 		}
 	})
 
-	chronometer.Default().LoadJob(&jobs.Stocks{Client: client, Tickers: []string{}})
-	chronometer.Default().LoadJob(&jobs.Clock{Client: client})
+	lib.DbInit()
+	migrateErr := lib.MigrateModel()
+	if migrateErr != nil {
+		fmt.Printf("Error migrating model: %s\n", migrateErr)
+		os.Exit(1)
+	}
+
+	chronometer.Default().LoadJob(jobs.NewStock(client))
+	chronometer.Default().LoadJob(jobs.NewClock(client))
 	chronometer.Default().Start()
 
 	session, err := client.Start()
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return
+		os.Exit(1)
 	}
 
 	_botId = session.Self.Id
@@ -226,7 +233,7 @@ func doStockTrack(m *slack.Message, c *slack.Client) error {
 
 	if job, hasJob := chronometer.Default().LoadedJobs["stocks"]; hasJob {
 		if typedJob, isStocksJob := job.(*jobs.Stocks); isStocksJob {
-			typedJob.Track(ticker)
+			typedJob.Track(ticker, m.User)
 			return sayf(c, m.Channel, "tracking `%s`", ticker)
 		} else {
 			logf("job `%s` is of type %#v", "stocks", job)

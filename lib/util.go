@@ -10,17 +10,18 @@ import (
 
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-request"
+	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/go-slack"
 )
 
 type StockInfo struct {
 	Ticker string
 	Format string
-	Values []float64
+	Values []interface{}
 }
 
 const (
-	STOCK_DEFAULT_FORMAT = "l1vc1"
+	STOCK_DEFAULT_FORMAT = "l1vc1p2"
 )
 
 func StockPrice(tickers []string, format string) ([]StockInfo, error) {
@@ -57,11 +58,13 @@ func StockPrice(tickers []string, format string) ([]StockInfo, error) {
 
 		si.Ticker = tickers[index]
 
-		values := []float64{}
+		values := []interface{}{}
 		for _, v := range parts {
 			f, fErr := strconv.ParseFloat(v, 64)
 			if fErr == nil {
 				values = append(values, f)
+			} else {
+				values = append(values, v)
 			}
 		}
 		si.Values = values
@@ -79,8 +82,19 @@ func AnnounceStocks(c *slack.Client, destinationId string, stockInfo []StockInfo
 	tickersLabel := strings.Join(tickersLabels, " ")
 	stockText := fmt.Sprintf("current equity price info for %s\n", tickersLabel)
 	for _, stock := range stockInfo {
-		if stock.Values != nil && len(stock.Values) > 2 {
-			stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%.2f* ch: *%.2f*%% \n", stock.Ticker, stock.Values[0], stock.Values[1], stock.Values[2])
+		if stock.Values != nil && len(stock.Values) > 3 {
+			change := stock.Values[2].(float64)
+			changeText := ""
+			if change > 0 {
+				changeText = fmt.Sprintf("+%.2f", change)
+			} else if change < 0 {
+				changeText = fmt.Sprintf("-%.2f", change)
+			} else {
+				changeText = "0.00"
+			}
+
+			changePct := stock.Values[3]
+			stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%.2f* ch: *%s* *%s*\n", stock.Ticker, stock.Values[0], stock.Values[1], changeText, util.StripQuotes(changePct.(string)))
 		}
 	}
 	return c.Say(destinationId, stockText)

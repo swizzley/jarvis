@@ -50,6 +50,10 @@ func (o OnTheHour) GetNextRunTime(after *time.Time) time.Time {
 	return returnValue
 }
 
+func NewClock(c *slack.Client) *Clock {
+	return &Clock{Client: c}
+}
+
 type Clock struct {
 	Client *slack.Client
 }
