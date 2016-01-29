@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/blendlabs/go-chronometer"
@@ -67,7 +68,10 @@ func (t Clock) Execute(ct *chronometer.CancellationToken) error {
 
 	for x := 0; x < len(t.Client.ActiveChannels); x++ {
 		channelId := t.Client.ActiveChannels[x]
-		return lib.AnnounceTime(t.Client, channelId, currentTime)
+		err := lib.AnnounceTime(t.Client, channelId, currentTime)
+		if err != nil {
+			fmt.Printf("%s - error announcing time: %v\n", time.Now().UTC(), err)
+		}
 	}
 	return nil
 }

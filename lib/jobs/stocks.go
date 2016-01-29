@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/blendlabs/go-chronometer"
@@ -8,6 +9,43 @@ import (
 	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis/lib"
 )
+
+func marketStartUtc(now time.Time) time.Time {
+	return time.Date(now.Year(), now.Month(), now.Day(), 14, 30, 0, 0, time.UTC)
+}
+
+func marketEndUtc(now time.Time) time.Time {
+	return time.Date(now.Year(), now.Month(), now.Day(), 21, 0, 0, 0, time.UTC)
+}
+
+type MarketHours struct{}
+
+func (o MarketHours) GetNextRunTime(after *time.Time) time.Time {
+	var returnValue time.Time
+	if after == nil {
+		now := time.Now().UTC()
+		marketStart := marketStartUtc(now)
+		marketEnd := marketEndUtc(now)
+		if now.After(marketStart) && now.Before(marketEnd) {
+			returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC).Add(1 * time.Hour)
+		} else if now.Before(marketStart) {
+			returnValue = marketStart
+		} else if now.After(marketEnd) {
+			returnValue = marketStart.AddDate(0, 0, 1)
+		}
+	} else {
+		marketStart := marketStartUtc(*after)
+		marketEnd := marketEndUtc(*after)
+		if after.After(marketStart) && after.Before(marketEnd) {
+			returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 0, 0, 0, time.UTC).Add(1 * time.Hour)
+		} else if after.Before(marketStart) {
+			returnValue = marketStart
+		} else if after.After(marketEnd) {
+			returnValue = marketStart.AddDate(0, 0, 1)
+		}
+	}
+	return returnValue
+}
 
 func NewStock(c *slack.Client) *Stocks {
 	job := &Stocks{}
@@ -54,6 +92,10 @@ func (t Stocks) Name() string {
 }
 
 func (t Stocks) Execute(ct *chronometer.CancellationToken) error {
+	if len(t.Tickers) == 0 {
+		return nil
+	}
+
 	stockInfo, stockErr := lib.StockPrice(t.Tickers, lib.STOCK_DEFAULT_FORMAT)
 	if stockErr != nil {
 		return stockErr
@@ -61,11 +103,14 @@ func (t Stocks) Execute(ct *chronometer.CancellationToken) error {
 
 	for x := 0; x < len(t.Client.ActiveChannels); x++ {
 		channelId := t.Client.ActiveChannels[x]
-		return lib.AnnounceStocks(t.Client, channelId, stockInfo)
+		announceErr := lib.AnnounceStocks(t.Client, channelId, stockInfo)
+		if announceErr != nil {
+			fmt.Printf("%s - error announcing stocks: %v\n", time.Now().UTC(), announceErr)
+		}
 	}
 	return nil
 }
 
 func (t Stocks) Schedule() chronometer.Schedule {
-	return OnTheHour{}
+	return MarketHours{}
 }

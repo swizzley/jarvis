@@ -13,10 +13,10 @@ func TestIsSalutation(t *testing.T) {
 	notSalutations := []string{"stuff", "things", "hell no"}
 
 	for _, message := range salutations {
-		a.True(isSalutation(message))
+		a.True(IsSalutation(message))
 	}
 
 	for _, message := range notSalutations {
-		a.False(isSalutation(message))
+		a.False(IsSalutation(message))
 	}
 }
