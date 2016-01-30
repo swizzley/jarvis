@@ -32,6 +32,8 @@ var commands = []action{
 	action{"^jobs", doJobsStatus},
 	action{"^job:run", doJobsRun},
 	action{"^job:cancel", doJobsCancel},
+	action{"^job:enable", doJobEnable},
+	action{"^job:disable", doJobDisable},
 	action{"^stock:price", doStockPrice},
 	action{"^stock:track", doStockTrack},
 	action{"^stock:remove", doStockRemove},
@@ -168,6 +170,28 @@ func doJobsCancel(m *slack.Message, c *slack.Client) error {
 		taskName := pieces[len(pieces)-1]
 		chronometer.Default().CancelTask(taskName)
 		return sayf(c, m.Channel, "canceled task `%s`", taskName)
+	}
+	return doUnknown(m, c)
+}
+
+func doJobEnable(m *slack.Message, c *slack.Client) error {
+	messageWithoutMentions := util.TrimWhitespace(lib.LessMentions(m.Text))
+	pieces := strings.Split(messageWithoutMentions, " ")
+	if len(pieces) > 1 {
+		taskName := pieces[len(pieces)-1]
+		chronometer.Default().EnableJob(taskName)
+		return sayf(c, m.Channel, "enabled job `%s`", taskName)
+	}
+	return doUnknown(m, c)
+}
+
+func doJobDisable(m *slack.Message, c *slack.Client) error {
+	messageWithoutMentions := util.TrimWhitespace(lib.LessMentions(m.Text))
+	pieces := strings.Split(messageWithoutMentions, " ")
+	if len(pieces) > 1 {
+		taskName := pieces[len(pieces)-1]
+		chronometer.Default().DisableJob(taskName)
+		return sayf(c, m.Channel, "disabled job `%s`", taskName)
 	}
 	return doUnknown(m, c)
 }

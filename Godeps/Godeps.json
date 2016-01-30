@@ -4,7 +4,7 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/blendlabs/go-chronometer",
-			"Rev": "4c7c5ca9f319f2484b7b4b1d5b877ebaf411bf1d"
+			"Rev": "428364ec7bb724b464bac160527b3384b1c9c888"
 		},
 		{
 			"ImportPath": "github.com/blendlabs/go-exception",
@@ -34,7 +34,7 @@
 		},
 		{
 			"ImportPath": "github.com/wcharczuk/go-slack",
-			"Rev": "8cd66bff528a7c18ad7b83df779f8efbfc5e5e95"
+			"Rev": "8fa1cc051c62bc9cad25ce583d4fe7b9114f5d0e"
 		}
 	]
 }
