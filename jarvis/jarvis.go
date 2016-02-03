@@ -129,8 +129,24 @@ func (jb *JarvisBot) DoTime(m *slack.Message) error {
 }
 
 func (jb *JarvisBot) DoTell(m *slack.Message) error {
-	//messageText := LessSpecificMention(m.Text, jb.BotId)
-	return nil
+	messageText := LessSpecificMention(m.Text, jb.BotId)
+	words := strings.Split(messageText, " ")
+
+	destinationUser := ""
+	tellMessage := ""
+
+	for x := 0; x < len(words); x++ {
+		word := words[x]
+		if Like(word, "tell") {
+			continue
+		} else if IsMention(word) {
+			destinationUser = word
+			tellMessage = strings.Join(words[x+1:], " ")
+		}
+	}
+	tellMessage = ReplaceAny(tellMessage, []string{"shes", "she's", "she is", "hes", "he's", "he is", "theyre", "they're", "they are"}, "you are")
+	resultMessage := fmt.Sprintf("%s %s", destinationUser, tellMessage)
+	return jb.Say(m.Channel, resultMessage)
 }
 
 func (jb *JarvisBot) DoChannels(m *slack.Message) error {

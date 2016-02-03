@@ -21,6 +21,14 @@ func TestIsSalutation(t *testing.T) {
 	}
 }
 
+func TestReplaceAny(t *testing.T) {
+	a := assert.New(t)
+
+	text := "this is a test of their things that she likes"
+	replaced := ReplaceAny(text, []string{"she", "test"}, "it")
+	a.Equal("this is a it of their things that it likes", replaced)
+}
+
 func TestLessMentions(t *testing.T) {
 	a := assert.New(t)
 

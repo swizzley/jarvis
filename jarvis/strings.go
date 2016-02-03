@@ -23,8 +23,8 @@ func MentionsUser(message, botId string) bool {
 	return Like(message, fmt.Sprintf("<@%s>", botId))
 }
 
-func IsMention(message, botId string) bool {
-	return Like(message, "")
+func IsMention(message string) bool {
+	return Like(message, "<@(.*)>")
 }
 
 func IsSalutation(message string) bool {
@@ -165,4 +165,14 @@ func Any(value string, values []string) bool {
 		}
 	}
 	return false
+}
+
+func ReplaceAny(corpus string, values []string, replacement string) string {
+	output := strings.ToLower(corpus)
+
+	for _, thing := range values {
+		output = strings.Replace(output, strings.ToLower(thing), strings.ToLower(replacement), -1)
+	}
+
+	return output
 }
