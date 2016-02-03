@@ -94,7 +94,7 @@ func (jb *JarvisBot) DoResponse(m *slack.Message) error {
 	jb.LogIncomingMessage(m)
 	if m.User != "slackbot" && m.User != jb.BotId {
 		messageText := util.TrimWhitespace(LessMentions(m.Text))
-		if IsMention(m.Text, jb.BotId) || (IsDM(m.Channel)) {
+		if MentionsUser(m.Text, jb.BotId) || (IsDM(m.Channel)) {
 			for _, actionHandler := range jb.MentionCommands() {
 				if Like(messageText, actionHandler.Expr) {
 					return actionHandler.Handler(m)
@@ -129,7 +129,7 @@ func (jb *JarvisBot) DoTime(m *slack.Message) error {
 }
 
 func (jb *JarvisBot) DoTell(m *slack.Message) error {
-	messageText := LessSpecificMention(m.Text, jb.BotId)
+	//messageText := LessSpecificMention(m.Text, jb.BotId)
 	return nil
 }
 

@@ -24,7 +24,7 @@ func TestIsSalutation(t *testing.T) {
 func TestLessMentions(t *testing.T) {
 	a := assert.New(t)
 
-	message := "this is a test <:abc123> of mentions <:bca321>"
+	message := "this is a test <@abc123> of mentions <@bca321>"
 	lessMentions := LessMentions(message)
 	a.Equal("this is a test of mentions ", lessMentions)
 }
@@ -32,7 +32,7 @@ func TestLessMentions(t *testing.T) {
 func TestLessSpecificMention(t *testing.T) {
 	a := assert.New(t)
 
-	message := "this is a test <:abc123> of specific mentions <:bca321> etc."
+	message := "this is a test <@abc123> of specific mentions <@bca321> etc."
 	lessMentions := LessSpecificMention(message, "abc123")
-	a.Equal("this is a test of specific mentions <:bca321> etc.", lessMentions)
+	a.Equal("this is a test of specific mentions <@bca321> etc.", lessMentions)
 }

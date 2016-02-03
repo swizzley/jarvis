@@ -23,6 +23,10 @@ func MentionsUser(message, botId string) bool {
 	return Like(message, fmt.Sprintf("<@%s>", botId))
 }
 
+func IsMention(message, botId string) bool {
+	return Like(message, "")
+}
+
 func IsSalutation(message string) bool {
 	return LikeAny(message, []string{"^hello", "^hi", "^greetings", "^hey", "^yo"})
 }
@@ -59,7 +63,7 @@ func LessMentions(message string) string {
 				state = 2
 			}
 		case 2:
-			if c == rune(":"[0]) {
+			if c == rune(":"[0]) { //chomp one more char
 				state = 2
 			} else if c == rune(" "[0]) {
 				state = 0
@@ -85,7 +89,7 @@ func LessSpecificMention(message, userId string) string {
 				output = output + string(c)
 			}
 		case 1:
-			if c == rune(":"[0]) {
+			if c == rune("@"[0]) {
 				state = 2
 			} else {
 				state = 0
@@ -95,7 +99,7 @@ func LessSpecificMention(message, userId string) string {
 			if c == rune(">"[0]) {
 				if workingUserId != userId {
 					state = 0
-					output = output + fmt.Sprintf("<:%s>", workingUserId)
+					output = output + fmt.Sprintf("<@%s>", workingUserId)
 				} else {
 					state = 3
 				}
@@ -104,8 +108,8 @@ func LessSpecificMention(message, userId string) string {
 				workingUserId = workingUserId + string(c)
 			}
 		case 3:
-			state = 0
-			if c != rune(" "[0]) {
+			if c != rune(" "[0]) && c != rune(":"[0]) {
+				state = 0
 				output = output + string(c)
 			}
 		}
