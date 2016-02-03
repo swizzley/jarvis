@@ -70,6 +70,7 @@ func (j *JarvisBot) MentionCommands() []JarvisAction {
 	return []JarvisAction{
 		JarvisAction{"^help", "Prints help info.", j.DoHelp},
 		JarvisAction{"^time", "Prints the current time.", j.DoTime},
+		JarvisAction{"^tell", "Tell people things.", j.DoTell},
 		JarvisAction{"^channels", "Prints the channels I'm currently listening to.", j.DoChannels},
 		JarvisAction{"^jobs", "Prints the current jobs and their statuses.", j.DoJobsStatus},
 		JarvisAction{"^job:run", "Runs all jobs", j.DoJobsRun},
@@ -125,6 +126,10 @@ func (jb *JarvisBot) DoHelp(m *slack.Message) error {
 func (jb *JarvisBot) DoTime(m *slack.Message) error {
 	now := time.Now().UTC()
 	return jb.AnnounceTime(m.Channel, now)
+}
+
+func (jb *JarvisBot) DoTell(m *slack.Message) error {
+	return nil
 }
 
 func (jb *JarvisBot) DoChannels(m *slack.Message) error {

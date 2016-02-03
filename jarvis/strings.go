@@ -72,6 +72,47 @@ func LessMentions(message string) string {
 	return output
 }
 
+func LessSpecificMention(message, userId string) string {
+	output := ""
+	workingUserId := ""
+	state := 0
+	for _, c := range message {
+		switch state {
+		case 0:
+			if c == rune("<"[0]) {
+				state = 1
+			} else {
+				output = output + string(c)
+			}
+		case 1:
+			if c == rune(":"[0]) {
+				state = 2
+			} else {
+				state = 0
+				output = output + string(c)
+			}
+		case 2:
+			if c == rune(">"[0]) {
+				if workingUserId != userId {
+					state = 0
+					output = output + fmt.Sprintf("<:%s>", workingUserId)
+				} else {
+					state = 3
+				}
+				workingUserId = ""
+			} else {
+				workingUserId = workingUserId + string(c)
+			}
+		case 3:
+			state = 0
+			if c != rune(" "[0]) {
+				output = output + string(c)
+			}
+		}
+	}
+	return output
+}
+
 func ExtractTags(message string) string {
 	output := ""
 	for _, c := range message {
