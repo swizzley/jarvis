@@ -282,10 +282,14 @@ func (jb *JarvisBot) AnnounceStocks(destinationId string, stockInfo []external.S
 	stockText := fmt.Sprintf("current equity price info for %s\n", tickersLabel)
 	for _, stock := range stockInfo {
 		if stock.Values != nil && len(stock.Values) > 3 {
-			change := stock.Values[2].(float64)
-			changeText := fmt.Sprintf("%.2f", change)
-			changePct := stock.Values[3]
-			stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%d* ch: *%s* *%s*\n", stock.Ticker, stock.Values[0], int(stock.Values[1].(float64)), changeText, util.StripQuotes(changePct.(string)))
+			if floatValue, isFloat := stock.Values[2].(float64); isFloat {
+				change := floatValue
+				changeText := fmt.Sprintf("%.2f", change)
+				changePct := stock.Values[3]
+				stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%d* ch: *%s* *%s*\n", stock.Ticker, stock.Values[0], int(stock.Values[1].(float64)), changeText, util.StripQuotes(changePct.(string)))
+			} else {
+				return jb.Sayf(destinationId, "There was an issue with `%s`", stock.Ticker)
+			}
 		}
 	}
 	return jb.Say(destinationId, stockText)
