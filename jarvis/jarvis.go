@@ -129,6 +129,7 @@ func (jb *JarvisBot) DoTime(m *slack.Message) error {
 }
 
 func (jb *JarvisBot) DoTell(m *slack.Message) error {
+	messageText := LessSpecificMention(m.Text, jb.BotId)
 	return nil
 }
 

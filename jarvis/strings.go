@@ -19,7 +19,7 @@ func IsChannel(channelId string) bool {
 	return strings.HasPrefix(channelId, "C")
 }
 
-func IsMention(message, botId string) bool {
+func MentionsUser(message, botId string) bool {
 	return Like(message, fmt.Sprintf("<@%s>", botId))
 }
 
