@@ -1,4 +1,4 @@
-package lib
+package jarvis
 
 import (
 	"fmt"
@@ -40,7 +40,7 @@ func IsVulgar(message string) bool {
 }
 
 func IsAngry(message string) bool {
-	return LikeAny(message, []string{"stupid", "worst", "terrible", "horrible", "cunt"}) //yep.
+	return LikeAny(message, []string{"stupid", "worst", "terrible", "horrible", "cunt", "suck", "awful", "asinine"}) //yep.
 }
 
 func LessMentions(message string) string {

@@ -1,12 +1,9 @@
-package jobs
+package jarvis
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/blendlabs/go-chronometer"
-	"github.com/wcharczuk/go-slack"
-	"github.com/wcharczuk/jarvis/lib"
 )
 
 type OnTheQuarterHour struct{}
@@ -51,12 +48,12 @@ func (o OnTheHour) GetNextRunTime(after *time.Time) time.Time {
 	return returnValue
 }
 
-func NewClock(c *slack.Client) *Clock {
-	return &Clock{Client: c}
+func NewClock(j *JarvisBot) *Clock {
+	return &Clock{Bot: j}
 }
 
 type Clock struct {
-	Client *slack.Client
+	Bot *JarvisBot
 }
 
 func (t Clock) Name() string {
@@ -66,11 +63,11 @@ func (t Clock) Name() string {
 func (t Clock) Execute(ct *chronometer.CancellationToken) error {
 	currentTime := time.Now().UTC()
 
-	for x := 0; x < len(t.Client.ActiveChannels); x++ {
-		channelId := t.Client.ActiveChannels[x]
-		err := lib.AnnounceTime(t.Client, channelId, currentTime)
+	for x := 0; x < len(t.Bot.Client.ActiveChannels); x++ {
+		channelId := t.Bot.Client.ActiveChannels[x]
+		err := t.Bot.AnnounceTime(channelId, currentTime)
 		if err != nil {
-			fmt.Printf("%s - error announcing time: %v\n", time.Now().UTC(), err)
+			t.Bot.Logf("Error announcing time: %v", err)
 		}
 	}
 	return nil
