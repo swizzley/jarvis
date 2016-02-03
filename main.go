@@ -58,7 +58,7 @@ type botAwareHttpHandlerFunc func(bots []*jarvis.JarvisBot, w http.ResponseWrite
 
 func statusHandler(bots []*jarvis.JarvisBot, w http.ResponseWriter, r *http.Request) {
 	for _, bot := range bots {
-		statusText := "Jarvis is running and listening to the following channels:\n"
+		statusText := fmt.Sprintf("Jarvis is running and listening to the following channels (%s):\n", bot.OrganizationName)
 		for _, channelId := range bot.Client.ActiveChannels {
 			channel := bot.FindChannel(channelId)
 			statusText = statusText + fmt.Sprintf("> #%s (%s)\n", channel.Name, channel.Id)
