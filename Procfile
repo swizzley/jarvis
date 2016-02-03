@@ -1,1 +1,1 @@
-web: jarvis
+web: jarvis-cli
