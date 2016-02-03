@@ -4,11 +4,23 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/dlintw/goconf"
 	"github.com/wcharczuk/jarvis-cli/jarvis"
 )
+
+func key() []byte {
+	keyBlob := os.Getenv("JARVIS_KEY")
+	key, keyErr := util.Base64Decode(keyBlob)
+	if keyErr != nil {
+		fmt.Printf("error reading key: %v\n", keyErr)
+		os.Exit(1)
+	}
+	return key
+}
 
 func port() string {
 	envPort := os.Getenv("PORT")
@@ -20,26 +32,46 @@ func port() string {
 }
 
 func main() {
-	bots := []*jarvis.JarvisBot{}
+	args := os.Args
+	if len(args) == 1 {
+		bots := initializeBotsFromConfig("jarvis.conf")
+		startStatusServer(bots)
+	} else {
+		command := args[1]
+		switch strings.ToLower(command) {
+		case "key":
+			fmt.Printf("JARVIS_KEY=%s\n", util.Base64Encode(jarvis.CreateKey(32)))
+			os.Exit(0)
+		case "encrypt":
+			if len(args) < 3 {
+				fmt.Println("need to provide a value to `encrypt`")
+				os.Exit(1)
+			}
+			value := args[2]
+			fmt.Printf("%s\n", encryptValue(value))
+			os.Exit(0)
+		}
+	}
+}
 
-	config, err := goconf.ReadConfigFile("jarvis.conf")
+func initializeBotsFromConfig(configPath string) []*jarvis.JarvisBot {
+	bots := []*jarvis.JarvisBot{}
+	config, err := goconf.ReadConfigFile(configPath)
 	if err != nil {
 		fmt.Printf("error reading config: %v\n", err)
 		os.Exit(1)
 	}
 
 	for _, section := range config.GetSections() {
-		token, tokenErr := config.GetString(section, "SLACK_API_TOKEN")
+		tokenRaw, tokenErr := config.GetString(section, "SLACK_API_TOKEN")
 		if tokenErr == nil {
-			j := jarvis.NewJarvisBot(token)
+			j := jarvis.NewJarvisBot(decryptValue(tokenRaw))
 			j.Init()
 			j.Start()
 			bots = append(bots, j)
 		}
 	}
-
-	//start up the bots.
-	startStatusServer(bots)
+	return bots
 }
 
 func startStatusServer(bots []*jarvis.JarvisBot) {
@@ -66,4 +98,28 @@ func statusHandler(bots []*jarvis.JarvisBot, w http.ResponseWriter, r *http.Requ
 		statusText = statusText + "\n"
 		fmt.Fprintf(w, statusText)
 	}
+}
+
+func encryptValue(value string) string {
+	encrypted, encryptError := jarvis.Encrypt(key(), value)
+	if encryptError != nil {
+		fmt.Printf("error encrypting value: %v\n", encryptError)
+		os.Exit(1)
+	}
+
+	return util.Base64Encode(encrypted)
+}
+
+func decryptValue(cipherText string) string {
+	tokenBlob, tokenBlobErr := util.Base64Decode(cipherText)
+	if tokenBlobErr != nil {
+		fmt.Printf("error reading value: %v\n", tokenBlobErr)
+		os.Exit(1)
+	}
+	decrypted, decryptedErr := jarvis.Decrypt(key(), tokenBlob)
+	if decryptedErr != nil {
+		fmt.Printf("error decrypting value: %v\n", decryptedErr)
+		os.Exit(1)
+	}
+	return decrypted
 }
