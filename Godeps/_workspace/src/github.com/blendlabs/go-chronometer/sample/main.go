@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/blendlabs/go-chronometer"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-chronometer"
 )
 
 type emptyJob struct {

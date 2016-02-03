@@ -1,6 +1,6 @@
 package chronometer
 
-import "github.com/blendlabs/go-exception"
+import "github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-exception"
 
 func NewCancellationToken() *CancellationToken {
 	return &CancellationToken{ShouldCancel: false, didCancel: false}

@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/blendlabs/go-exception"
-	"github.com/blendlabs/go-request"
-	"github.com/blendlabs/go-util"
-	"github.com/gorilla/websocket"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-exception"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-request"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-util"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
 type Event string

@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/blendlabs/go-exception"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-exception"
 )
 
 type ReadChunkHandler func(line []byte)

@@ -14,7 +14,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")

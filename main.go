@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
-	"github.com/dlintw/goconf"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/dlintw/goconf"
 	"github.com/wcharczuk/jarvis-cli/jarvis"
 )
 
@@ -43,7 +44,7 @@ func main() {
 
 func startStatusServer(bots []*jarvis.JarvisBot) {
 	http.HandleFunc("/", injectBots(bots, statusHandler))
-	fmt.Printf("starting status server, listening on: %s", port())
+	fmt.Printf("jarvis-cli - %s - starting status server, listening on: %s\n", time.Now().UTC().Format(time.RFC3339), port())
 	http.ListenAndServe(":"+port(), nil)
 }
 
@@ -62,6 +63,7 @@ func statusHandler(bots []*jarvis.JarvisBot, w http.ResponseWriter, r *http.Requ
 			channel := bot.FindChannel(channelId)
 			statusText = statusText + fmt.Sprintf("> #%s (%s)\n", channel.Name, channel.Id)
 		}
+		statusText = statusText + "\n"
 		fmt.Fprintf(w, statusText)
 	}
 }

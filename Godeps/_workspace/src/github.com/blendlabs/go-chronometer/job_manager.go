@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/blendlabs/go-exception"
-	"github.com/blendlabs/go-util/collections"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-exception"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-util/collections"
 )
 
 const (

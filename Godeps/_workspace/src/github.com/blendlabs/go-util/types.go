@@ -3,7 +3,7 @@ package util
 import (
 	"strings"
 
-	"github.com/blendlabs/go-exception"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-exception"
 )
 
 type KeyValuePair struct {

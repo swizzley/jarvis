@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/blendlabs/go-exception"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-exception"
 )
 
 func FollowValuePointer(v reflect.Value) interface{} {

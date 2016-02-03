@@ -3,7 +3,7 @@ package collections
 import (
 	"strings"
 
-	"github.com/blendlabs/go-util"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-util"
 )
 
 type StringArray []string
