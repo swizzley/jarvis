@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/blendlabs/go-chronometer"
+	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis-cli/jarvis/external"
@@ -98,7 +99,7 @@ func (jb *JarvisBot) DoResponse(m *slack.Message) error {
 	if user != nil {
 		if m.User != "slackbot" && m.User != jb.BotId && !user.IsBot {
 			messageText := util.TrimWhitespace(LessMentions(m.Text))
-			if MentionsUser(m.Text, jb.BotId) || (IsDM(m.Channel)) {
+			if IsUserMention(m.Text, jb.BotId) || IsDM(m.Channel) {
 				for _, actionHandler := range jb.MentionCommands() {
 					if Like(messageText, actionHandler.Expr) {
 						return actionHandler.Handler(m)
@@ -247,41 +248,21 @@ func (jb *JarvisBot) DoStockPrice(m *slack.Message) error {
 
 func (jb *JarvisBot) DoJira(m *slack.Message) error {
 	text := LessMentions(m.Text)
-	rawCredentials, hasCredentials := jb.Configuration["JIRA_CREDENTIALS"]
-	if !hasCredentials {
-		return nil
-	}
-	credentials, isString := rawCredentials.(string)
-	if !isString {
-		return nil
-	}
 
-	credentialPieces := strings.Split(credentials, ":")
-	jiraUser := credentialPieces[0]
-	jiraPassword := credentialPieces[1]
-	host := jb.Configuration["JIRA_HOST"].(string)
-
-	issueIds := []string{}
-	issueIds = append(issueIds, Extract(text, "(DSP-[0-9]+)")...)
-	issueIds = append(issueIds, Extract(text, "(BUGS-[0-9]+)")...)
-
+	issueIds := jb.extractJiraIssues(text)
 	if len(issueIds) == 0 {
 		return nil
 	}
 
-	user := jb.FindUser(m.User)
-
-	issues := []*external.JiraIssue{}
-	for _, issueId := range issueIds {
-		issue, issueErr := external.GetJiraIssue(jiraUser, jiraPassword, host, issueId)
-		if issueErr == nil {
-			issues = append(issues, issue)
-		}
+	issues, issuesErr := jb.fetchJiraIssues(issueIds)
+	if issuesErr != nil {
+		return issuesErr
 	}
-
 	if len(issues) == 0 {
 		return nil
 	}
+
+	user := jb.FindUser(m.User)
 
 	leadText := fmt.Sprintf("*%s* has mentioned the following jira issues (%d): ", user.Profile.FirstName, len(issues))
 	message := slack.NewChatMessage(m.Channel, leadText)
@@ -303,6 +284,56 @@ func (jb *JarvisBot) DoJira(m *slack.Message) error {
 		fmt.Printf("issue posting message: %v\n", messageErr)
 	}
 	return messageErr
+}
+
+func (jb *JarvisBot) extractJiraIssues(text string) []string {
+	issueIds := []string{}
+	issueIds = append(issueIds, Extract(text, "(DSP-[0-9]+)")...)
+	issueIds = append(issueIds, Extract(text, "(BUGS-[0-9]+)")...)
+	return issueIds
+}
+
+func (jb *JarvisBot) fetchJiraIssues(issueIds []string) ([]*external.JiraIssue, error) {
+	issues := []*external.JiraIssue{}
+	rawCredentials, hasCredentials := jb.Configuration["JIRA_CREDENTIALS"]
+
+	if !hasCredentials {
+		return issues, exception.New("Jarvis is not configured with Jira credentials.")
+	}
+	credentials, isString := rawCredentials.(string)
+	if !isString {
+		return issues, exception.New("Jira credentials are not a string.")
+	}
+
+	credentialPieces := strings.Split(credentials, ":")
+
+	if len(credentialPieces) != 2 {
+		return issues, exception.New("Jira credentials are not formatted correctly.")
+	}
+
+	jiraUser := credentialPieces[0]
+	jiraPassword := credentialPieces[1]
+
+	jiraHost, hasJiraHost := jb.Configuration["JIRA_HOST"]
+	if !hasJiraHost {
+		return issues, exception.New("Jarvis is not configured with a Jira host.")
+	}
+
+	host, hostIsString := jiraHost.(string)
+	if !hostIsString {
+		return issues, exception.New("Jira host is not a string.")
+	}
+
+	for _, issueId := range issueIds {
+		issue, issueErr := external.GetJiraIssue(jiraUser, jiraPassword, host, issueId)
+		if issueErr == nil {
+			issues = append(issues, issue)
+		} else {
+			return issues, issueErr
+		}
+	}
+
+	return issues, nil
 }
 
 func (jb *JarvisBot) DoOtherResponse(m *slack.Message) error {

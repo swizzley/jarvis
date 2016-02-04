@@ -5,8 +5,6 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
-
-	"github.com/blendlabs/go-util/collections"
 )
 
 func Random(messages []string) string {
@@ -21,8 +19,8 @@ func IsChannel(channelId string) bool {
 	return strings.HasPrefix(channelId, "C")
 }
 
-func MentionsUser(message, botId string) bool {
-	return Like(message, fmt.Sprintf("<@%s>", botId))
+func IsUserMention(message, userId string) bool {
+	return Like(message, fmt.Sprintf("<@%s>", userId))
 }
 
 func IsMention(message string) bool {
@@ -30,7 +28,7 @@ func IsMention(message string) bool {
 }
 
 func IsSalutation(message string) bool {
-	return LikeAny(message, []string{"^hello", "^hi", "^greetings", "^hey", "^yo"})
+	return LikeAny(message, []string{"^hello", "^hi", "^greetings", "^hey", "^yo", "^sup"})
 }
 
 func IsAsking(message string) bool {
@@ -119,7 +117,7 @@ func LessSpecificMention(message, userId string) string {
 	return output
 }
 
-func ExtractTags(message string) string {
+func RemoveTags(message string) string {
 	output := ""
 	for _, c := range message {
 		if !(c == rune("<"[0]) || c == rune(">"[0])) {
@@ -129,12 +127,17 @@ func ExtractTags(message string) string {
 	return output
 }
 
-func LessFirst(message string) string {
+func LessFirstWord(message string) string {
 	queryPieces := strings.Split(message, " ")[1:]
 	return strings.Join(queryPieces, " ")
 }
 
-func Last(message string) string {
+func FirstWord(message string) string {
+	pieces := strings.Split(message, " ")
+	return pieces[0]
+}
+
+func LastWord(message string) string {
 	pieces := strings.Split(message, " ")
 	if len(pieces) != 0 {
 		return pieces[len(pieces)-1]
@@ -152,16 +155,8 @@ func Like(corpus, expr string) bool {
 }
 
 func Extract(corpus, expr string) []string {
-	results := collections.StringSet{}
-	if !strings.HasPrefix(expr, "(?i)") {
-		expr = "(?i)" + expr
-	}
 	re := regexp.MustCompile(expr)
-	resultItems := re.FindStringSubmatch(corpus)
-	for _, item := range resultItems {
-		results.Add(item)
-	}
-	return results.ToArray()
+	return re.FindAllString(corpus, -1)
 }
 
 func LikeAny(corpus string, exprs []string) bool {
@@ -173,7 +168,7 @@ func LikeAny(corpus string, exprs []string) bool {
 	return false
 }
 
-func Any(value string, values []string) bool {
+func EqualsAny(value string, values []string) bool {
 	for _, v := range values {
 		if v == value {
 			return true
