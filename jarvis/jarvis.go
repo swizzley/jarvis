@@ -289,7 +289,7 @@ func (jb *JarvisBot) DoJira(m *slack.Message) error {
 	message.UnfurlLinks = slack.OptionalBool(false)
 	message.UnfurlMedia = slack.OptionalBool(false)
 	for _, issue := range issues {
-		itemText := fmt.Sprintf("%s - %s", issue.Key, issue.Fields.Summary)
+		itemText := fmt.Sprintf("%s - %s\n%s", issue.Key, issue.Fields.Summary, issue.Self)
 		item := slack.ChatMessageAttachment{
 			Fallback: itemText,
 			Color:    slack.OptionalString("#3572b0"),
