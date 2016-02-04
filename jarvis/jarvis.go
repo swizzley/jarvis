@@ -86,26 +86,29 @@ func (j *JarvisBot) MentionCommands() []JarvisAction {
 
 func (j *JarvisBot) PassiveCommands() []JarvisAction {
 	return []JarvisAction{
-		JarvisAction{"DSP-([0-9]+)", "Fetch jira task info.", j.DoJira},
-		JarvisAction{"BUGS-([0-9]+)", "Fetch jira task info.", j.DoJira},
+		JarvisAction{"(DSP-[0-9]+)", "Fetch jira task info.", j.DoJira},
+		JarvisAction{"(BUGS-[0-9]+)", "Fetch jira task info.", j.DoJira},
 		JarvisAction{"(.*)", "I'll do the best I can.", j.DoOtherPassiveResponse},
 	}
 }
 
 func (jb *JarvisBot) DoResponse(m *slack.Message) error {
 	jb.LogIncomingMessage(m)
-	if m.User != "slackbot" && m.User != jb.BotId {
-		messageText := util.TrimWhitespace(LessMentions(m.Text))
-		if MentionsUser(m.Text, jb.BotId) || (IsDM(m.Channel)) {
-			for _, actionHandler := range jb.MentionCommands() {
-				if Like(messageText, actionHandler.Expr) {
-					return actionHandler.Handler(m)
+	user := jb.FindUser(m.User)
+	if user != nil {
+		if m.User != "slackbot" && m.User != jb.BotId && !user.IsBot {
+			messageText := util.TrimWhitespace(LessMentions(m.Text))
+			if MentionsUser(m.Text, jb.BotId) || (IsDM(m.Channel)) {
+				for _, actionHandler := range jb.MentionCommands() {
+					if Like(messageText, actionHandler.Expr) {
+						return actionHandler.Handler(m)
+					}
 				}
-			}
-		} else {
-			for _, actionHandler := range jb.PassiveCommands() {
-				if Like(messageText, actionHandler.Expr) {
-					return actionHandler.Handler(m)
+			} else {
+				for _, actionHandler := range jb.PassiveCommands() {
+					if Like(messageText, actionHandler.Expr) {
+						return actionHandler.Handler(m)
+					}
 				}
 			}
 		}

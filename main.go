@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blendlabs/go-util"
+	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-util"
 	"github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/dlintw/goconf"
 	"github.com/wcharczuk/jarvis-cli/jarvis"
 )
