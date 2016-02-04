@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
+
+	"github.com/blendlabs/go-util/collections"
 )
 
 func Random(messages []string) string {
@@ -147,6 +149,19 @@ func Like(corpus, expr string) bool {
 	}
 	matched, _ := regexp.Match(expr, []byte(corpus))
 	return matched
+}
+
+func Extract(corpus, expr string) []string {
+	results := collections.StringSet{}
+	if !strings.HasPrefix(expr, "(?i)") {
+		expr = "(?i)" + expr
+	}
+	re := regexp.MustCompile(expr)
+	resultItems := re.FindStringSubmatch(corpus)
+	for _, item := range resultItems {
+		results.Add(item)
+	}
+	return results.ToArray()
 }
 
 func LikeAny(corpus string, exprs []string) bool {

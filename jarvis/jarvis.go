@@ -20,7 +20,7 @@ type JarvisAction struct {
 type JarvisMessageHandler func(m *slack.Message) error
 
 func NewJarvisBot(token string) *JarvisBot {
-	return &JarvisBot{Token: token, JobManager: chronometer.NewJobManager()}
+	return &JarvisBot{Token: token, JobManager: chronometer.NewJobManager(), Configuration: map[string]interface{}{}}
 }
 
 type JarvisBot struct {
@@ -30,6 +30,8 @@ type JarvisBot struct {
 
 	UsersLookup    map[string]slack.User
 	ChannelsLookup map[string]slack.Channel
+
+	Configuration map[string]interface{}
 
 	JobManager *chronometer.JobManager
 	Client     *slack.Client
@@ -241,7 +243,63 @@ func (jb *JarvisBot) DoStockPrice(m *slack.Message) error {
 }
 
 func (jb *JarvisBot) DoJira(m *slack.Message) error {
-	return jb.Say(m.Channel, "I actually don't know how to look these up yet.")
+	text := LessMentions(m.Text)
+	rawCredentials, hasCredentials := jb.Configuration["JIRA_CREDENTIALS"]
+	if !hasCredentials {
+		return nil
+	}
+	credentials, isString := rawCredentials.(string)
+	if !isString {
+		return nil
+	}
+
+	credentialPieces := strings.Split(credentials, ":")
+	jiraUser := credentialPieces[0]
+	jiraPassword := credentialPieces[1]
+	host := jb.Configuration["JIRA_HOST"].(string)
+
+	issueIds := []string{}
+	issueIds = append(issueIds, Extract(text, "(DSP-[0-9]+)")...)
+	issueIds = append(issueIds, Extract(text, "(BUGS-[0-9]+)")...)
+
+	if len(issueIds) == 0 {
+		return nil
+	}
+
+	user := jb.FindUser(m.User)
+
+	issues := []*external.JiraIssue{}
+	for _, issueId := range issueIds {
+		issue, issueErr := external.GetJiraIssue(jiraUser, jiraPassword, host, issueId)
+		if issueErr == nil {
+			issues = append(issues, issue)
+		}
+	}
+
+	if len(issues) == 0 {
+		return nil
+	}
+
+	leadText := fmt.Sprintf("*%s* has mentioned the following jira issues (%d): ", user.Profile.FirstName, len(issues))
+	message := slack.NewChatMessage(m.Channel, leadText)
+	message.AsUser = slack.OptionalBool(true)
+	message.UnfurlLinks = slack.OptionalBool(false)
+	message.UnfurlMedia = slack.OptionalBool(false)
+	for _, issue := range issues {
+		itemText := fmt.Sprintf("%s - %s", issue.Key, issue.Fields.Summary)
+		item := slack.ChatMessageAttachment{
+			Fallback: itemText,
+			Color:    slack.OptionalString("#3572b0"),
+			Text:     slack.OptionalString(itemText),
+		}
+		message.Attachments = append(message.Attachments, item)
+	}
+
+	_, messageErr := jb.Client.ChatPostMessage(message)
+	if messageErr != nil {
+		fmt.Printf("issue posting message: %v\n", messageErr)
+	}
+	return messageErr
 }
 
 func (jb *JarvisBot) DoOtherResponse(m *slack.Message) error {

@@ -44,3 +44,16 @@ func TestLessSpecificMention(t *testing.T) {
 	lessMentions := LessSpecificMention(message, "abc123")
 	a.Equal("this is a test of specific mentions <@bca321> etc.", lessMentions)
 }
+
+func TestExtract(t *testing.T) {
+	a := assert.New(t)
+
+	text := " DSP-7916"
+
+	results := Extract(text, "(DSP-[0-9]+)")
+	a.NotEmpty(results)
+	a.Equal("DSP-7916", results[0])
+
+	noResults := Extract(text, "(BUGS-[0-9]+)")
+	a.Empty(noResults)
+}

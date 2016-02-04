@@ -66,6 +66,15 @@ func initializeBotsFromConfig(configPath string) []*jarvis.JarvisBot {
 		tokenRaw, tokenErr := config.GetString(section, "SLACK_API_TOKEN")
 		if tokenErr == nil {
 			j := jarvis.NewJarvisBot(decryptValue(tokenRaw))
+
+			if jiraCredentials, jiraCredentialsErr := config.GetString(section, "JIRA_CREDENTIALS"); jiraCredentialsErr == nil {
+				j.Configuration["JIRA_CREDENTIALS"] = decryptValue(jiraCredentials)
+			}
+
+			if jiraHost, jiraHostErr := config.GetString(section, "JIRA_HOST"); jiraHostErr == nil {
+				j.Configuration["JIRA_HOST"] = jiraHost
+			}
+
 			j.Init()
 			j.Start()
 			bots = append(bots, j)
