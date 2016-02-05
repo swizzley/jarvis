@@ -21,7 +21,7 @@ type JarvisAction struct {
 type JarvisMessageHandler func(m *slack.Message) error
 
 func NewJarvisBot(token string) *JarvisBot {
-	return &JarvisBot{Token: token, JobManager: chronometer.NewJobManager(), Configuration: map[string]interface{}{}}
+	return &JarvisBot{Token: token, JobManager: chronometer.NewJobManager(), Configuration: map[string]interface{}{}, OptionPassive: false}
 }
 
 type JarvisBot struct {
@@ -31,6 +31,8 @@ type JarvisBot struct {
 
 	UsersLookup    map[string]slack.User
 	ChannelsLookup map[string]slack.Channel
+
+	OptionPassive bool
 
 	Configuration map[string]interface{}
 
@@ -106,9 +108,11 @@ func (jb *JarvisBot) DoResponse(m *slack.Message) error {
 					}
 				}
 			} else {
-				for _, actionHandler := range jb.PassiveCommands() {
-					if Like(messageText, actionHandler.Expr) {
-						return actionHandler.Handler(m)
+				if jb.OptionPassive {
+					for _, actionHandler := range jb.PassiveCommands() {
+						if Like(messageText, actionHandler.Expr) {
+							return actionHandler.Handler(m)
+						}
 					}
 				}
 			}
