@@ -8,6 +8,7 @@ import (
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-util"
+	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis-cli/jarvis/external"
 )
 

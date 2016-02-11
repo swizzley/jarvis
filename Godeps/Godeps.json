@@ -21,6 +21,14 @@
 		{
 			"ImportPath": "github.com/dlintw/goconf",
 			"Rev": "dcc070983490608a14480e3bf943bad464785df5"
+		},
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Rev": "5434f8b69b7f4f4ef0120e04c046cd6ce54ef0dd"
+		},
+		{
+			"ImportPath": "github.com/wcharczuk/go-slack",
+			"Rev": "0ae4b3fd82373845fbce3bf967b12eacf1236c24"
 		}
 	]
 }
