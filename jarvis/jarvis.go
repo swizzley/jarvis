@@ -8,6 +8,7 @@ import (
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-util"
+	"github.com/blendlabs/go-util/linq"
 	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis-cli/jarvis/external"
 )
@@ -83,6 +84,8 @@ func (j *JarvisBot) MentionCommands() []JarvisAction {
 		JarvisAction{"^job:enable", "Enables a job.", j.DoJobEnable},
 		JarvisAction{"^job:disable", "Disables enables a job.", j.DoJobDisable},
 		JarvisAction{"^stock:price", "Fetches the current price and volume for a given ticker.", j.DoStockPrice},
+		JarvisAction{"^config:passive", "Enables or disables passive commands.", j.DoConfigPassive},
+		JarvisAction{"^config", "Prints the current config", j.DoConfig},
 		JarvisAction{"(.*)", "I'll do the best I can.", j.DoOtherResponse},
 	}
 }
@@ -154,7 +157,7 @@ func (jb *JarvisBot) DoTell(m *slack.Message) error {
 			tellMessage = strings.Join(words[x+1:], " ")
 		}
 	}
-	tellMessage = ReplaceAny(tellMessage, []string{"shes", "she's", "she is", "hes", "he's", "he is", "theyre", "they're", "they are"}, "you are")
+	tellMessage = ReplaceAny(tellMessage, "you are", "shes", "she's", "she is", "hes", "he's", "he is", "theyre", "they're", "they are")
 	resultMessage := fmt.Sprintf("%s %s", destinationUser, tellMessage)
 	return jb.Say(m.Channel, resultMessage)
 }
@@ -226,6 +229,40 @@ func (jb *JarvisBot) DoJobDisable(m *slack.Message) error {
 		taskName := pieces[len(pieces)-1]
 		jb.JobManager.DisableJob(taskName)
 		return jb.Sayf(m.Channel, "disabled job `%s`", taskName)
+	}
+	return jb.DoUnknown(m)
+}
+
+func (jb *JarvisBot) DoConfig(m *slack.Message) error {
+	configText := "current config:\n"
+	if jb.OptionPassive {
+		configText = configText + "> `passive` : enabled\n"
+	} else {
+		configText = configText + "> `passive` : disabled\n"
+	}
+
+	return jb.Say(m.Channel, configText)
+}
+
+func (jb *JarvisBot) DoConfigPassive(m *slack.Message) error {
+	messageWithoutMentions := util.TrimWhitespace(LessMentions(m.Text))
+	passiveValue := linq.LastOfString(strings.Split(messageWithoutMentions, " "), nil)
+
+	if passiveValue != nil {
+		passiveSetting := false
+		if LikeAny(*passiveValue, "true", "yes", "on", "1") {
+			passiveSetting = true
+		} else if LikeAny(*passiveValue, "false", "off", "0") {
+			passiveSetting = false
+		} else {
+			return jb.Sayf(m.Channel, "invalid %T option value: %q", passiveSetting, *passiveValue)
+		}
+		jb.OptionPassive = passiveSetting
+		if passiveSetting {
+			return jb.Say(m.Channel, "config: enabled passive responses")
+		} else {
+			return jb.Say(m.Channel, "config: disabled passive responses")
+		}
 	}
 	return jb.DoUnknown(m)
 }

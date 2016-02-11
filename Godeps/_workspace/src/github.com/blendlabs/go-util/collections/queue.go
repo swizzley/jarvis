@@ -19,17 +19,10 @@ func (q *Queue) Length() int {
 func (q *Queue) Push(value interface{}) {
 	node := queueNode{Value: value}
 
-	//the queue is empty, that is to say head is nil
-	if q.head == nil {
+	if q.head == nil { //the queue is empty, that is to say head is nil
 		q.head = &node
 		q.tail = &node
-	} else {
-		//the queue is not empty, we have a (valid) tail pointer
-		//make
-		//	- tail.prev point to new node
-		//	- new node.next point to tail
-		//	- tail to new node
-
+	} else { //the queue is not empty, we have a (valid) tail pointer
 		q.tail.Previous = &node
 		node.Next = q.tail
 		q.tail = &node
@@ -48,8 +41,6 @@ func (q *Queue) Dequeue() interface{} {
 	if q.length == 1 && q.head == q.tail {
 		q.head = nil
 		q.tail = nil
-	} else if q.length == 1 {
-		panic("Inconsistent queue state; length is 1 but head != tail")
 	} else {
 		q.head = q.head.Previous
 		if q.head != nil {

@@ -16,7 +16,7 @@
 		},
 		{
 			"ImportPath": "github.com/blendlabs/go-util",
-			"Rev": "d8a2ca0aed8a72535be866975814fc115019f218"
+			"Rev": "2cedb01a7c0cd1dd16f3d0d4e25505831bd43c91"
 		},
 		{
 			"ImportPath": "github.com/dlintw/goconf",

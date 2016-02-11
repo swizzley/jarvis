@@ -28,23 +28,23 @@ func IsMention(message string) bool {
 }
 
 func IsSalutation(message string) bool {
-	return LikeAny(message, []string{"^hello", "^hi", "^greetings", "^hey", "^yo", "^sup"})
+	return LikeAny(message, "^hello", "^hi", "^greetings", "^hey", "^yo", "^sup")
 }
 
 func IsAsking(message string) bool {
-	return LikeAny(message, []string{"would it be possible", "can you", "would you", "is it possible", "([^.?!]*)\\?"})
+	return LikeAny(message, "would it be possible", "can you", "would you", "is it possible", "([^.?!]*)\\?")
 }
 
 func IsPolite(message string) bool {
-	return LikeAny(message, []string{"please", "thanks"})
+	return LikeAny(message, "please", "thanks")
 }
 
 func IsVulgar(message string) bool {
-	return LikeAny(message, []string{"fuck", "shit", "ass", "cunt"}) //yep.
+	return LikeAny(message, "fuck", "shit", "ass", "cunt") //yep.
 }
 
 func IsAngry(message string) bool {
-	return LikeAny(message, []string{"stupid", "worst", "terrible", "horrible", "cunt", "suck", "awful", "asinine"}) //yep.
+	return LikeAny(message, "stupid", "worst", "terrible", "horrible", "cunt", "suck", "awful", "asinine") //yep.
 }
 
 func LessMentions(message string) string {
@@ -159,7 +159,7 @@ func Extract(corpus, expr string) []string {
 	return re.FindAllString(corpus, -1)
 }
 
-func LikeAny(corpus string, exprs []string) bool {
+func LikeAny(corpus string, exprs ...string) bool {
 	for _, expr := range exprs {
 		if Like(corpus, expr) {
 			return true
@@ -168,7 +168,7 @@ func LikeAny(corpus string, exprs []string) bool {
 	return false
 }
 
-func EqualsAny(value string, values []string) bool {
+func EqualsAny(value string, values ...string) bool {
 	for _, v := range values {
 		if v == value {
 			return true
@@ -177,7 +177,7 @@ func EqualsAny(value string, values []string) bool {
 	return false
 }
 
-func ReplaceAny(corpus string, values []string, replacement string) string {
+func ReplaceAny(corpus string, replacement string, values ...string) string {
 	output := strings.ToLower(corpus)
 
 	for _, thing := range values {

@@ -22,9 +22,13 @@ const (
 )
 
 var (
+	LOWER_A = uint("a"[0])
+	LOWER_Z = uint("z"[0])
+
 	letters           = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	numbers           = []rune("0123456789")
 	lettersAndNumbers = append(letters, numbers...)
+	lowerDiff         = (LOWER_Z - LOWER_A)
 )
 
 func IsEmpty(input string) bool {
@@ -38,6 +42,43 @@ func EmptyCoalesce(inputs ...string) string {
 		}
 	}
 	return EMPTY
+}
+
+func CaseInsensitiveEquals(a, b string) bool {
+	aLen := len(a)
+	bLen := len(b)
+	if aLen != bLen {
+		return false
+	}
+
+	for x := 0; x < aLen; x++ {
+		charA := uint(a[x])
+		charB := uint(b[x])
+
+		if charA-LOWER_A <= lowerDiff {
+			charA = charA - 0x20
+		}
+		if charB-LOWER_A <= lowerDiff {
+			charB = charB - 0x20
+		}
+		if charA != charB {
+			return false
+		}
+	}
+
+	return true
+}
+
+func IsLetter(c byte) bool {
+	return IsUpper(c) || IsLower(c)
+}
+
+func IsUpper(c byte) bool {
+	return c > 65 && c < 90
+}
+
+func IsLower(c byte) bool {
+	return c > 97 && c < 122
 }
 
 func CombinePathComponents(components ...string) string {

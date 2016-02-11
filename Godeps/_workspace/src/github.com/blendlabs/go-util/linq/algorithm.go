@@ -1,11 +1,11 @@
-package util
+package linq
 
-import "reflect"
+import "github.com/wcharczuk/jarvis-cli/Godeps/_workspace/src/github.com/blendlabs/go-util"
 
 // Combinations returns the "power set" of values less the empty set.
 // Use "combinations" when the order of the resulting sets do not matter.
 func CombinationsOfInt(values []int) [][]int {
-	possibleValues := PowOfInt(2, uint(len(values))) //less the empty entry
+	possibleValues := util.PowOfInt(2, uint(len(values))) //less the empty entry
 	output := make([][]int, possibleValues-1)
 
 	for x := 0; x < possibleValues-1; x++ {
@@ -26,7 +26,7 @@ func CombinationsOfInt(values []int) [][]int {
 // Combinations returns the "power set" of values less the empty set.
 // Use "combinations" when the order of the resulting sets do not matter.
 func CombinationsOfFloat(values []float64) [][]float64 {
-	possibleValues := PowOfInt(2, uint(len(values))) //less the empty entry
+	possibleValues := util.PowOfInt(2, uint(len(values))) //less the empty entry
 	output := make([][]float64, possibleValues-1)
 
 	for x := 0; x < possibleValues-1; x++ {
@@ -47,7 +47,7 @@ func CombinationsOfFloat(values []float64) [][]float64 {
 // Combinations returns the "power set" of values less the empty set.
 // Use "combinations" when the order of the resulting sets do not matter.
 func CombinationsOfString(values []string) [][]string {
-	possibleValues := PowOfInt(2, uint(len(values))) //less the empty entry
+	possibleValues := util.PowOfInt(2, uint(len(values))) //less the empty entry
 	output := make([][]string, possibleValues-1)
 
 	for x := 0; x < possibleValues-1; x++ {
@@ -148,7 +148,7 @@ func PermuteDistributions(total, buckets int) [][]int {
 func PermuteDistributionsFromExisting(total, buckets int, existing []int) [][]int {
 	output := [][]int{}
 	existingLength := len(existing)
-	existingSum := SumOfInt(existing)
+	existingSum := util.SumOfInt(existing)
 	remainder := total - existingSum
 
 	if buckets == 1 {
@@ -169,129 +169,4 @@ func PermuteDistributionsFromExisting(total, buckets int, existing []int) [][]in
 	}
 
 	return output
-}
-
-type Predicate func(item interface{}) bool
-type PredicateOfInt func(item int) bool
-type PredicateOfFloat func(item float64) bool
-type PredicateOfString func(item string) bool
-
-func Any(target interface{}, predicate Predicate) bool {
-	t := reflect.TypeOf(target)
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	v := reflect.ValueOf(target)
-	for v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if t.Kind() != reflect.Slice {
-		return false
-	}
-
-	for x := 0; x < v.Len(); x++ {
-		obj := v.Index(x).Interface()
-		if predicate(obj) {
-			return true
-		}
-	}
-	return false
-}
-
-func AnyOfInt(target []int, predicate PredicateOfInt) bool {
-	v := reflect.ValueOf(target)
-
-	for x := 0; x < v.Len(); x++ {
-		obj := v.Index(x).Interface().(int)
-		if predicate(obj) {
-			return true
-		}
-	}
-	return false
-}
-
-func AnyOfFloat(target []float64, predicate PredicateOfFloat) bool {
-	v := reflect.ValueOf(target)
-
-	for x := 0; x < v.Len(); x++ {
-		obj := v.Index(x).Interface().(float64)
-		if predicate(obj) {
-			return true
-		}
-	}
-	return false
-}
-
-func AnyOfString(target []string, predicate PredicateOfString) bool {
-	v := reflect.ValueOf(target)
-
-	for x := 0; x < v.Len(); x++ {
-		obj := v.Index(x).Interface().(string)
-		if predicate(obj) {
-			return true
-		}
-	}
-	return false
-}
-
-func All(target interface{}, predicate Predicate) bool {
-	t := reflect.TypeOf(target)
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	v := reflect.ValueOf(target)
-	for v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if t.Kind() != reflect.Slice {
-		return false
-	}
-
-	for x := 0; x < v.Len(); x++ {
-		obj := v.Index(x).Interface()
-		if !predicate(obj) {
-			return false
-		}
-	}
-	return true
-}
-
-func AllOfInt(target []int, predicate PredicateOfInt) bool {
-	v := reflect.ValueOf(target)
-
-	for x := 0; x < v.Len(); x++ {
-		obj := v.Index(x).Interface().(int)
-		if !predicate(obj) {
-			return false
-		}
-	}
-	return true
-}
-
-func AllOfFloat(target []float64, predicate PredicateOfFloat) bool {
-	v := reflect.ValueOf(target)
-
-	for x := 0; x < v.Len(); x++ {
-		obj := v.Index(x).Interface().(float64)
-		if !predicate(obj) {
-			return false
-		}
-	}
-	return true
-}
-
-func AllOfString(target []string, predicate PredicateOfString) bool {
-	v := reflect.ValueOf(target)
-
-	for x := 0; x < v.Len(); x++ {
-		obj := v.Index(x).Interface().(string)
-		if !predicate(obj) {
-			return false
-		}
-	}
-	return true
 }

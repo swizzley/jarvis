@@ -4,7 +4,26 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io"
+	"regexp"
 )
+
+var cdataPrefix []byte = []byte("<![CDATA[")
+var cdataSuffix []byte = []byte("]]>")
+
+func EncodeCdata(data []byte) []byte {
+	return bytes.Join([][]byte{cdataPrefix, data, cdataSuffix}, []byte{})
+}
+
+var cdataRe *regexp.Regexp = regexp.MustCompile("<!\\[CDATA\\[(.*?)\\]\\]>")
+
+func DecodeCdata(cdata []byte) []byte {
+	matches := cdataRe.FindAllSubmatch(cdata, 1)
+	if len(matches) == 0 {
+		return cdata
+	}
+
+	return matches[0][1]
+}
 
 type charsetReader func(charset string, input io.Reader) (io.Reader, error)
 
