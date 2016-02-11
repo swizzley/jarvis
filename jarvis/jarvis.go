@@ -8,7 +8,6 @@ import (
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-util"
-	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis-cli/jarvis/external"
 )
 
@@ -21,7 +20,7 @@ type JarvisAction struct {
 type JarvisMessageHandler func(m *slack.Message) error
 
 func NewJarvisBot(token string) *JarvisBot {
-	return &JarvisBot{Token: token, JobManager: chronometer.NewJobManager(), Configuration: map[string]interface{}{}, OptionPassive: false}
+	return &JarvisBot{Token: token, JobManager: chronometer.NewJobManager(), Configuration: map[string]interface{}{}, OptionPassive: true}
 }
 
 type JarvisBot struct {
