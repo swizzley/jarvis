@@ -1,0 +1,51 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"path": "github.com/blendlabs/go-assert",
+			"revision": "192dc078cd1c144e8fec85530e7d49325888c28c",
+			"revisionTime": "2016-01-29T09:15:17-08:00"
+		},
+		{
+			"path": "github.com/blendlabs/go-chronometer",
+			"revision": "2158dce95f30ba9a909d1ee067e550d2449a891b",
+			"revisionTime": "2016-02-18T12:38:58-08:00"
+		},
+		{
+			"path": "github.com/blendlabs/go-exception",
+			"revision": "4c5fb3b838fd613ec4fc4a78d60b972ff7a88ada",
+			"revisionTime": "2015-12-07T18:39:50-08:00"
+		},
+		{
+			"path": "github.com/blendlabs/go-request",
+			"revision": "98e4dd80a68ccf427bed8bdf2f9fb64c8b0da88b",
+			"revisionTime": "2016-02-17T16:56:47-08:00"
+		},
+		{
+			"path": "github.com/blendlabs/go-util",
+			"revision": "a81a90772896b4047308eae53eab002b533ccbf9",
+			"revisionTime": "2016-02-18T13:00:36-08:00"
+		},
+		{
+			"path": "github.com/blendlabs/go-util/collections",
+			"revision": "a81a90772896b4047308eae53eab002b533ccbf9",
+			"revisionTime": "2016-02-18T13:00:36-08:00"
+		},
+		{
+			"path": "github.com/blendlabs/go-util/linq",
+			"revision": "a81a90772896b4047308eae53eab002b533ccbf9",
+			"revisionTime": "2016-02-18T13:00:36-08:00"
+		},
+		{
+			"path": "github.com/gorilla/websocket",
+			"revision": "4935ba31a2adbfcd9e08b86d2657659afbf1af9a",
+			"revisionTime": "2016-02-17T09:43:51-08:00"
+		},
+		{
+			"path": "github.com/wcharczuk/go-slack",
+			"revision": "0ae4b3fd82373845fbce3bf967b12eacf1236c24",
+			"revisionTime": "2016-02-03T16:47:18-08:00"
+		}
+	]
+}
