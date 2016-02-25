@@ -9,7 +9,7 @@ import (
 
 	"github.com/blendlabs/go-util"
 	"github.com/dlintw/goconf"
-	"github.com/wcharczuk/jarvis-cli/jarvis"
+	"github.com/wcharczuk/jarvis/jarvis"
 )
 
 func key() []byte {
