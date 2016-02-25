@@ -1,4 +1,4 @@
-package jarvis
+package core
 
 import (
 	"testing"

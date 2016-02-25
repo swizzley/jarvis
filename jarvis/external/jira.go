@@ -2,14 +2,16 @@ package external
 
 import "github.com/blendlabs/go-request"
 
+// JiraIssue represents JIRA metadata.
 type JiraIssue struct {
-	Id     string           `json:"id"`
+	ID     string           `json:"id"`
 	Expand string           `json:"expand"`
 	Self   string           `json:"self"`
 	Key    string           `json:"key"`
 	Fields *JiraIssueFields `json:"fields"`
 }
 
+// JiraIssueFields represents JIRA metadata.
 type JiraIssueFields struct {
 	LastViewed  string       `json:"lastViewed"`
 	Created     string       `json:"created"`
@@ -23,8 +25,9 @@ type JiraIssueFields struct {
 	Status      *JiraStatus  `json:"status"`
 }
 
+// JiraUser represents JIRA metadata.
 type JiraUser struct {
-	Id           string            `json:"id"`
+	ID           string            `json:"id"`
 	Self         string            `json:"self"`
 	Name         string            `json:"name"`
 	Key          string            `json:"key"`
@@ -35,40 +38,45 @@ type JiraUser struct {
 	AvatarUrls   map[string]string `json:"avatarUrls"`
 }
 
+// JiraProject represents JIRA metadata.
 type JiraProject struct {
-	Id         string            `json:"id"`
+	ID         string            `json:"id"`
 	Self       string            `json:"self"`
 	Name       string            `json:"name"`
 	Key        string            `json:"key"`
 	AvatarUrls map[string]string `json:"avatarUrls"`
 }
 
+// JiraStatus represents JIRA metadata.
 type JiraStatus struct {
-	Id             string              `json:"id"`
+	ID             string              `json:"id"`
 	Self           string              `json:"self"`
 	Description    string              `json:"description"`
-	IconUrl        string              `json:"iconUrl"`
+	IconURL        string              `json:"iconUrl"`
 	Name           string              `json:"name"`
 	StatusCategory *JiraStatusCategory `json:"statusCategory"`
 }
 
+// JiraStatusCategory represents JIRA metadata.
 type JiraStatusCategory struct {
-	Id        int    `json:"id"`
+	ID        int    `json:"id"`
 	Self      string `json:"self"`
 	Name      string `json:"name"`
 	Key       string `json:"key"`
 	ColorName string `json:"colorName"`
 }
 
+// JiraPriority represents JIRA metadata.
 type JiraPriority struct {
-	Id      string `json:"id"`
+	ID      string `json:"id"`
 	Self    string `json:"self"`
-	IconUrl string `json:"iconUrl"`
+	IconURL string `json:"iconUrl"`
 	Name    string `json:"name"`
 }
 
-func GetJiraIssue(user, password, host, issueId string) (*JiraIssue, error) {
+// GetJiraIssue gets the metadata for a given issueID.
+func GetJiraIssue(user, password, host, issueID string) (*JiraIssue, error) {
 	var issue JiraIssue
-	fetchErr := request.NewRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPath("rest/api/2/issue/%s", issueId).FetchJsonToObject(&issue)
+	fetchErr := request.NewRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPath("rest/api/2/issue/%s", issueID).FetchJsonToObject(&issue)
 	return &issue, fetchErr
 }

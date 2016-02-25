@@ -6,8 +6,10 @@ import (
 	"github.com/blendlabs/go-chronometer"
 )
 
+// OnTheQuarterHour is a schedule that fires every 15 minutes, on the quarter hours.
 type OnTheQuarterHour struct{}
 
+// GetNextRunTime implements the chronometer Schedule api.
 func (o OnTheQuarterHour) GetNextRunTime(after *time.Time) time.Time {
 	var returnValue time.Time
 	if after == nil {
@@ -35,8 +37,10 @@ func (o OnTheQuarterHour) GetNextRunTime(after *time.Time) time.Time {
 	return returnValue
 }
 
+// OnTheHour is a schedule that fires every hour on the 00th minute.
 type OnTheHour struct{}
 
+// GetNextRunTime implements the chronometer Schedule api.
 func (o OnTheHour) GetNextRunTime(after *time.Time) time.Time {
 	var returnValue time.Time
 	if after == nil {
@@ -48,24 +52,28 @@ func (o OnTheHour) GetNextRunTime(after *time.Time) time.Time {
 	return returnValue
 }
 
+// NewClock returns a new clock job instance.
 func NewClock(j *JarvisBot) *Clock {
 	return &Clock{Bot: j}
 }
 
+// Clock is a job that announces the time through a given bot.
 type Clock struct {
 	Bot *JarvisBot
 }
 
+// Name returns the name of the chronometer job.
 func (t Clock) Name() string {
 	return "clock"
 }
 
+// Execute is the actual code that runs when the job is fired.
 func (t Clock) Execute(ct *chronometer.CancellationToken) error {
 	currentTime := time.Now().UTC()
 
 	for x := 0; x < len(t.Bot.Client.ActiveChannels); x++ {
-		channelId := t.Bot.Client.ActiveChannels[x]
-		err := t.Bot.AnnounceTime(channelId, currentTime)
+		channelID := t.Bot.Client.ActiveChannels[x]
+		err := t.Bot.AnnounceTime(channelID, currentTime)
 		if err != nil {
 			t.Bot.Logf("Error announcing time: %v", err)
 		}
@@ -73,6 +81,7 @@ func (t Clock) Execute(ct *chronometer.CancellationToken) error {
 	return nil
 }
 
+// Schedule returns the job schedule.
 func (t Clock) Schedule() chronometer.Schedule {
 	return OnTheHour{}
 }

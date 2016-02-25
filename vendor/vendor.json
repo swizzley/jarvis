@@ -49,8 +49,8 @@
 		},
 		{
 			"path": "github.com/wcharczuk/go-slack",
-			"revision": "65639e945fc733b9730acb636c4d52198d092b46",
-			"revisionTime": "2016-02-25T14:51:21-08:00"
+			"revision": "0dff775baaf09d11ffd667fffa017d7a98eff49e",
+			"revisionTime": "2016-02-25T15:44:12-08:00"
 		}
 	]
 }

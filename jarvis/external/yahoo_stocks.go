@@ -10,6 +10,7 @@ import (
 	"github.com/blendlabs/go-request"
 )
 
+// StockInfo represents information about a stock.
 type StockInfo struct {
 	Ticker string
 	Format string
@@ -17,9 +18,11 @@ type StockInfo struct {
 }
 
 const (
-	STOCK_DEFAULT_FORMAT = "l1vc1p2"
+	// StockDefaultFormat is the default stock format string for Yahoo's stock api.
+	StockDefaultFormat = "l1vc1p2"
 )
 
+// StockPrice returns stock price info from Yahoo for the given tickers.
 func StockPrice(tickers []string, format string) ([]StockInfo, error) {
 	if len(tickers) == 0 {
 		return []StockInfo{}, nil

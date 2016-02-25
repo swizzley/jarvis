@@ -1,4 +1,4 @@
-package jarvis
+package core
 
 import (
 	"crypto/aes"
@@ -10,12 +10,14 @@ import (
 	"github.com/blendlabs/go-exception"
 )
 
+// CreateKey creates a new key for use with the Encrypt or Decrypt methods.
 func CreateKey(size int) []byte {
 	key := make([]byte, size)
 	io.ReadFull(rand.Reader, key)
 	return key
 }
 
+// Encrypt encrypts the given data with the given key.
 func Encrypt(key []byte, text string) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -31,6 +33,7 @@ func Encrypt(key []byte, text string) ([]byte, error) {
 	return ciphertext, nil
 }
 
+// Decrypt decrypts the given data with the given key.
 func Decrypt(key []byte, cipherText []byte) (string, error) {
 	if len(cipherText) < aes.BlockSize {
 		return "", exception.New(fmt.Sprintf("Cannot decrypt string: `cipherText` is smaller than AES block size (%v)", aes.BlockSize))

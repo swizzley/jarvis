@@ -10,24 +10,18 @@ import (
 	"github.com/blendlabs/go-util"
 	"github.com/blendlabs/go-util/linq"
 	"github.com/wcharczuk/go-slack"
-	"github.com/wcharczuk/jarvis-cli/jarvis/external"
+	"github.com/wcharczuk/jarvis/jarvis/external"
 )
 
-type JarvisAction struct {
-	Expr    string
-	Desc    string
-	Handler JarvisMessageHandler
+// NewBot returns a new Bot instance.
+func NewBot(token string) *Bot {
+	return &Bot{Token: token, JobManager: chronometer.NewJobManager(), Configuration: map[string]interface{}{}, OptionPassive: true}
 }
 
-type JarvisMessageHandler func(m *slack.Message) error
-
-func NewJarvisBot(token string) *JarvisBot {
-	return &JarvisBot{Token: token, JobManager: chronometer.NewJobManager(), Configuration: map[string]interface{}{}, OptionPassive: true}
-}
-
-type JarvisBot struct {
+// Bot is the main primitive.
+type Bot struct {
 	Token            string
-	BotId            string
+	BotID            string
 	OrganizationName string
 
 	UsersLookup    map[string]slack.User
@@ -41,38 +35,39 @@ type JarvisBot struct {
 	Client     *slack.Client
 }
 
-func (jb *JarvisBot) Init() error {
-	client := slack.Connect(jb.Token)
-	jb.Client = client
-	jb.Client.Listen(slack.EVENT_HELLO, func(m *slack.Message, c *slack.Client) {
-		jb.Log("slack is connected")
+// Init connects the bot to Slack.
+func (b *Bot) Init() error {
+	client := slack.Connect(b.Token)
+	b.Client = client
+	b.Client.Listen(slack.EventHello, func(m *slack.Message, c *slack.Client) {
+		b.Log("slack is connected")
 	})
-	jb.Client.Listen(slack.EVENT_MESSAGE, func(m *slack.Message, c *slack.Client) {
-		resErr := jb.DoResponse(m)
+	b.Client.Listen(slack.EventMessage, func(m *slack.Message, c *slack.Client) {
+		resErr := b.DoResponse(m)
 		if resErr != nil {
-			jb.Log(resErr)
+			b.Log(resErr)
 		}
 	})
-	jb.JobManager.LoadJob(NewClock(jb))
-	jb.JobManager.DisableJob("clock")
+	b.JobManager.LoadJob(jobs.NewClock(b))
+	b.JobManager.DisableJob("clock")
 	return nil
 }
 
-func (jb *JarvisBot) Start() error {
-	session, err := jb.Client.Start()
+func (b *Bot) Start() error {
+	session, err := b.Client.Start()
 	if err != nil {
 		return err
 	}
 
-	jb.BotId = session.Self.Id
-	jb.OrganizationName = session.Team.Name
-	jb.ChannelsLookup = jb.createChannelLookup(session)
-	jb.UsersLookup = jb.createUsersLookup(session)
-	jb.JobManager.Start()
+	b.BotId = session.Self.Id
+	b.OrganizationName = session.Team.Name
+	b.ChannelsLookup = b.createChannelLookup(session)
+	b.UsersLookup = b.createUsersLookup(session)
+	b.JobManager.Start()
 	return nil
 }
 
-func (j *JarvisBot) MentionCommands() []JarvisAction {
+func (b *Bot) MentionCommands() []JarvisAction {
 	return []JarvisAction{
 		JarvisAction{"^help", "Prints help info.", j.DoHelp},
 		JarvisAction{"^time", "Prints the current time.", j.DoTime},
@@ -90,7 +85,7 @@ func (j *JarvisBot) MentionCommands() []JarvisAction {
 	}
 }
 
-func (j *JarvisBot) PassiveCommands() []JarvisAction {
+func (b *Bot) PassiveCommands() []JarvisAction {
 	return []JarvisAction{
 		JarvisAction{"(DSP-[0-9]+)", "Fetch jira task info.", j.DoJira},
 		JarvisAction{"(BUGS-[0-9]+)", "Fetch jira task info.", j.DoJira},
@@ -98,21 +93,21 @@ func (j *JarvisBot) PassiveCommands() []JarvisAction {
 	}
 }
 
-func (jb *JarvisBot) DoResponse(m *slack.Message) error {
-	jb.LogIncomingMessage(m)
-	user := jb.FindUser(m.User)
+func (b *Bot) DoResponse(m *slack.Message) error {
+	b.LogIncomingMessage(m)
+	user := b.FindUser(m.User)
 	if user != nil {
-		if m.User != "slackbot" && m.User != jb.BotId && !user.IsBot {
+		if m.User != "slackbot" && m.User != b.BotId && !user.IsBot {
 			messageText := util.TrimWhitespace(LessMentions(m.Text))
-			if IsUserMention(m.Text, jb.BotId) || IsDM(m.Channel) {
-				for _, actionHandler := range jb.MentionCommands() {
+			if IsUserMention(m.Text, b.BotId) || IsDM(m.Channel) {
+				for _, actionHandler := range b.MentionCommands() {
 					if Like(messageText, actionHandler.Expr) {
 						return actionHandler.Handler(m)
 					}
 				}
 			} else {
-				if jb.OptionPassive {
-					for _, actionHandler := range jb.PassiveCommands() {
+				if b.OptionPassive {
+					for _, actionHandler := range b.PassiveCommands() {
 						if Like(messageText, actionHandler.Expr) {
 							return actionHandler.Handler(m)
 						}
@@ -124,25 +119,25 @@ func (jb *JarvisBot) DoResponse(m *slack.Message) error {
 	return nil
 }
 
-func (jb *JarvisBot) DoHelp(m *slack.Message) error {
+func (b *Bot) DoHelp(m *slack.Message) error {
 	responseText := "Here are the commands that are currently configured:"
-	for _, actionHandler := range jb.MentionCommands() {
+	for _, actionHandler := range b.MentionCommands() {
 		responseText = responseText + fmt.Sprintf("\n>`%s` - %s", actionHandler.Expr, actionHandler.Desc)
 	}
 	responseText = responseText + "\nWith the following passive commands:"
-	for _, actionHandler := range jb.PassiveCommands() {
+	for _, actionHandler := range b.PassiveCommands() {
 		responseText = responseText + fmt.Sprintf("\n>`%s` - %s", actionHandler.Expr, actionHandler.Desc)
 	}
-	return jb.Say(m.Channel, responseText)
+	return b.Say(m.Channel, responseText)
 }
 
-func (jb *JarvisBot) DoTime(m *slack.Message) error {
+func (b *Bot) DoTime(m *slack.Message) error {
 	now := time.Now().UTC()
-	return jb.AnnounceTime(m.Channel, now)
+	return b.AnnounceTime(m.Channel, now)
 }
 
-func (jb *JarvisBot) DoTell(m *slack.Message) error {
-	messageText := LessSpecificMention(m.Text, jb.BotId)
+func (b *Bot) DoTell(m *slack.Message) error {
+	messageText := LessSpecificMention(m.Text, b.BotId)
 	words := strings.Split(messageText, " ")
 
 	destinationUser := ""
@@ -159,92 +154,92 @@ func (jb *JarvisBot) DoTell(m *slack.Message) error {
 	}
 	tellMessage = ReplaceAny(tellMessage, "you are", "shes", "she's", "she is", "hes", "he's", "he is", "theyre", "they're", "they are")
 	resultMessage := fmt.Sprintf("%s %s", destinationUser, tellMessage)
-	return jb.Say(m.Channel, resultMessage)
+	return b.Say(m.Channel, resultMessage)
 }
 
-func (jb *JarvisBot) DoChannels(m *slack.Message) error {
-	if len(jb.Client.ActiveChannels) == 0 {
-		return jb.Say(m.Channel, "currently listening to *no* channels.")
+func (b *Bot) DoChannels(m *slack.Message) error {
+	if len(b.Client.ActiveChannels) == 0 {
+		return b.Say(m.Channel, "currently listening to *no* channels.")
 	}
 	activeChannelsText := "currently listening to the following channels:\n"
-	for _, channelId := range jb.Client.ActiveChannels {
-		if channel := jb.FindChannel(channelId); channel != nil {
+	for _, channelId := range b.Client.ActiveChannels {
+		if channel := b.FindChannel(channelId); channel != nil {
 			activeChannelsText = activeChannelsText + fmt.Sprintf(">#%s (id:%s)\n", channel.Name, channel.Id)
 		}
 	}
-	return jb.Say(m.Channel, activeChannelsText)
+	return b.Say(m.Channel, activeChannelsText)
 }
 
-func (jb *JarvisBot) DoJobsStatus(m *slack.Message) error {
+func (b *Bot) DoJobsStatus(m *slack.Message) error {
 	statusText := "current job statuses:\n"
-	for _, status := range jb.JobManager.Status() {
+	for _, status := range b.JobManager.Status() {
 		if len(status.RunningFor) != 0 {
 			statusText = statusText + fmt.Sprintf(">`%s` - state: %s running for: %s\n", status.Name, status.State, status.RunningFor)
 		} else {
 			statusText = statusText + fmt.Sprintf(">`%s` - state: %s\n", status.Name, status.State)
 		}
 	}
-	return jb.Say(m.Channel, statusText)
+	return b.Say(m.Channel, statusText)
 }
 
-func (jb *JarvisBot) DoJobsRun(m *slack.Message) error {
+func (b *Bot) DoJobsRun(m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
 		jobName := pieces[len(pieces)-1]
-		jb.JobManager.RunJob(jobName)
-		return jb.Sayf(m.Channel, "ran job `%s`", jobName)
+		b.JobManager.RunJob(jobName)
+		return b.Sayf(m.Channel, "ran job `%s`", jobName)
 	} else {
-		jb.JobManager.RunAllJobs()
-		return jb.Say(m.Channel, "ran all jobs")
+		b.JobManager.RunAllJobs()
+		return b.Say(m.Channel, "ran all jobs")
 	}
 }
 
-func (jb *JarvisBot) DoJobsCancel(m *slack.Message) error {
+func (b *Bot) DoJobsCancel(m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
 		taskName := pieces[len(pieces)-1]
-		jb.JobManager.CancelTask(taskName)
-		return jb.Sayf(m.Channel, "canceled task `%s`", taskName)
+		b.JobManager.CancelTask(taskName)
+		return b.Sayf(m.Channel, "canceled task `%s`", taskName)
 	}
-	return jb.DoUnknown(m)
+	return b.DoUnknown(m)
 }
 
-func (jb *JarvisBot) DoJobEnable(m *slack.Message) error {
+func (b *Bot) DoJobEnable(m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
 		taskName := pieces[len(pieces)-1]
-		jb.JobManager.EnableJob(taskName)
-		return jb.Sayf(m.Channel, "enabled job `%s`", taskName)
+		b.JobManager.EnableJob(taskName)
+		return b.Sayf(m.Channel, "enabled job `%s`", taskName)
 	}
-	return jb.DoUnknown(m)
+	return b.DoUnknown(m)
 }
 
-func (jb *JarvisBot) DoJobDisable(m *slack.Message) error {
+func (b *Bot) DoJobDisable(m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
 		taskName := pieces[len(pieces)-1]
-		jb.JobManager.DisableJob(taskName)
-		return jb.Sayf(m.Channel, "disabled job `%s`", taskName)
+		b.JobManager.DisableJob(taskName)
+		return b.Sayf(m.Channel, "disabled job `%s`", taskName)
 	}
-	return jb.DoUnknown(m)
+	return b.DoUnknown(m)
 }
 
-func (jb *JarvisBot) DoConfig(m *slack.Message) error {
+func (b *Bot) DoConfig(m *slack.Message) error {
 	configText := "current config:\n"
-	if jb.OptionPassive {
+	if b.OptionPassive {
 		configText = configText + "> `passive` : enabled\n"
 	} else {
 		configText = configText + "> `passive` : disabled\n"
 	}
 
-	return jb.Say(m.Channel, configText)
+	return b.Say(m.Channel, configText)
 }
 
-func (jb *JarvisBot) DoConfigPassive(m *slack.Message) error {
+func (b *Bot) DoConfigPassive(m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(LessMentions(m.Text))
 	passiveValue := linq.LastOfString(strings.Split(messageWithoutMentions, " "), nil)
 
@@ -255,19 +250,19 @@ func (jb *JarvisBot) DoConfigPassive(m *slack.Message) error {
 		} else if LikeAny(*passiveValue, "false", "off", "0") {
 			passiveSetting = false
 		} else {
-			return jb.Sayf(m.Channel, "invalid %T option value: %q", passiveSetting, *passiveValue)
+			return b.Sayf(m.Channel, "invalid %T option value: %q", passiveSetting, *passiveValue)
 		}
-		jb.OptionPassive = passiveSetting
+		b.OptionPassive = passiveSetting
 		if passiveSetting {
-			return jb.Say(m.Channel, "config: enabled passive responses")
+			return b.Say(m.Channel, "config: enabled passive responses")
 		} else {
-			return jb.Say(m.Channel, "config: disabled passive responses")
+			return b.Say(m.Channel, "config: disabled passive responses")
 		}
 	}
-	return jb.DoUnknown(m)
+	return b.DoUnknown(m)
 }
 
-func (jb *JarvisBot) DoStockPrice(m *slack.Message) error {
+func (b *Bot) DoStockPrice(m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
@@ -282,20 +277,20 @@ func (jb *JarvisBot) DoStockPrice(m *slack.Message) error {
 		if stockErr != nil {
 			return stockErr
 		}
-		return jb.AnnounceStocks(m.Channel, stockInfo)
+		return b.AnnounceStocks(m.Channel, stockInfo)
 	}
-	return jb.DoUnknown(m)
+	return b.DoUnknown(m)
 }
 
-func (jb *JarvisBot) DoJira(m *slack.Message) error {
+func (b *Bot) DoJira(m *slack.Message) error {
 	text := LessMentions(m.Text)
 
-	issueIds := jb.extractJiraIssues(text)
+	issueIds := b.extractJiraIssues(text)
 	if len(issueIds) == 0 {
 		return nil
 	}
 
-	issues, issuesErr := jb.fetchJiraIssues(issueIds)
+	issues, issuesErr := b.fetchJiraIssues(issueIds)
 	if issuesErr != nil {
 		return issuesErr
 	}
@@ -303,7 +298,7 @@ func (jb *JarvisBot) DoJira(m *slack.Message) error {
 		return nil
 	}
 
-	user := jb.FindUser(m.User)
+	user := b.FindUser(m.User)
 
 	leadText := fmt.Sprintf("*%s* has mentioned the following jira issues (%d): ", user.Profile.FirstName, len(issues))
 	message := slack.NewChatMessage(m.Channel, leadText)
@@ -320,23 +315,23 @@ func (jb *JarvisBot) DoJira(m *slack.Message) error {
 		message.Attachments = append(message.Attachments, item)
 	}
 
-	_, messageErr := jb.Client.ChatPostMessage(message)
+	_, messageErr := b.Client.ChatPostMessage(message)
 	if messageErr != nil {
 		fmt.Printf("issue posting message: %v\n", messageErr)
 	}
 	return messageErr
 }
 
-func (jb *JarvisBot) extractJiraIssues(text string) []string {
+func (b *Bot) extractJiraIssues(text string) []string {
 	issueIds := []string{}
 	issueIds = append(issueIds, Extract(text, "(DSP-[0-9]+)")...)
 	issueIds = append(issueIds, Extract(text, "(BUGS-[0-9]+)")...)
 	return issueIds
 }
 
-func (jb *JarvisBot) fetchJiraIssues(issueIds []string) ([]*external.JiraIssue, error) {
+func (b *Bot) fetchJiraIssues(issueIds []string) ([]*external.JiraIssue, error) {
 	issues := []*external.JiraIssue{}
-	rawCredentials, hasCredentials := jb.Configuration["JIRA_CREDENTIALS"]
+	rawCredentials, hasCredentials := b.Configuration["JIRA_CREDENTIALS"]
 
 	if !hasCredentials {
 		return issues, exception.New("Jarvis is not configured with Jira credentials.")
@@ -355,7 +350,7 @@ func (jb *JarvisBot) fetchJiraIssues(issueIds []string) ([]*external.JiraIssue, 
 	jiraUser := credentialPieces[0]
 	jiraPassword := credentialPieces[1]
 
-	jiraHost, hasJiraHost := jb.Configuration["JIRA_HOST"]
+	jiraHost, hasJiraHost := b.Configuration["JIRA_HOST"]
 	if !hasJiraHost {
 		return issues, exception.New("Jarvis is not configured with a Jira host.")
 	}
@@ -365,8 +360,8 @@ func (jb *JarvisBot) fetchJiraIssues(issueIds []string) ([]*external.JiraIssue, 
 		return issues, exception.New("Jira host is not a string.")
 	}
 
-	for _, issueId := range issueIds {
-		issue, issueErr := external.GetJiraIssue(jiraUser, jiraPassword, host, issueId)
+	for _, issueID := range issueIds {
+		issue, issueErr := external.GetJiraIssue(jiraUser, jiraPassword, host, issueID)
 		if issueErr == nil {
 			issues = append(issues, issue)
 		} else {
@@ -377,36 +372,36 @@ func (jb *JarvisBot) fetchJiraIssues(issueIds []string) ([]*external.JiraIssue, 
 	return issues, nil
 }
 
-func (jb *JarvisBot) DoOtherResponse(m *slack.Message) error {
+func (b *Bot) DoOtherResponse(m *slack.Message) error {
 	message := util.TrimWhitespace(LessMentions(m.Text))
 	if IsSalutation(message) {
-		return jb.DoSalutation(m)
+		return b.DoSalutation(m)
 	} else {
-		return jb.DoUnknown(m)
+		return b.DoUnknown(m)
 	}
 }
 
-func (jb *JarvisBot) DoOtherPassiveResponse(m *slack.Message) error {
+func (b *Bot) DoOtherPassiveResponse(m *slack.Message) error {
 	message := util.TrimWhitespace(LessMentions(m.Text))
 	if IsAngry(message) {
-		user := jb.FindUser(m.User)
+		user := b.FindUser(m.User)
 		response := []string{"slow down %s", "maybe calm down %s", "%s you should really relax", "chill %s", "it's ok %s, let it out"}
-		return jb.Sayf(m.Channel, Random(response), strings.ToLower(user.Profile.FirstName))
+		return b.Sayf(m.Channel, Random(response), strings.ToLower(user.Profile.FirstName))
 	}
 	return nil
 }
 
-func (jb *JarvisBot) DoSalutation(m *slack.Message) error {
-	user := jb.FindUser(m.User)
+func (b *Bot) DoSalutation(m *slack.Message) error {
+	user := b.FindUser(m.User)
 	salutation := []string{"hey %s", "hi %s", "hello %s", "ohayo gozaimasu %s", "salut %s", "bonjour %s", "yo %s", "sup %s"}
-	return jb.Sayf(m.Channel, Random(salutation), strings.ToLower(user.Profile.FirstName))
+	return b.Sayf(m.Channel, Random(salutation), strings.ToLower(user.Profile.FirstName))
 }
 
-func (jb *JarvisBot) DoUnknown(m *slack.Message) error {
-	return jb.Sayf(m.Channel, "I don't know how to respond to this\n>%s", m.Text)
+func (b *Bot) DoUnknown(m *slack.Message) error {
+	return b.Sayf(m.Channel, "I don't know how to respond to this\n>%s", m.Text)
 }
 
-func (jb *JarvisBot) AnnounceStocks(destinationId string, stockInfo []external.StockInfo) error {
+func (b *Bot) AnnounceStocks(destinationId string, stockInfo []external.StockInfo) error {
 	tickersLabels := []string{}
 	for _, stock := range stockInfo {
 		tickersLabels = append(tickersLabels, fmt.Sprintf("`%s`", stock.Ticker))
@@ -421,14 +416,14 @@ func (jb *JarvisBot) AnnounceStocks(destinationId string, stockInfo []external.S
 				changePct := stock.Values[3]
 				stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%d* ch: *%s* *%s*\n", stock.Ticker, stock.Values[0], int(stock.Values[1].(float64)), changeText, util.StripQuotes(changePct.(string)))
 			} else {
-				return jb.Sayf(destinationId, "There was an issue with `%s`", stock.Ticker)
+				return b.Sayf(destinationId, "There was an issue with `%s`", stock.Ticker)
 			}
 		}
 	}
-	return jb.Say(destinationId, stockText)
+	return b.Say(destinationId, stockText)
 }
 
-func (jb *JarvisBot) AnnounceTime(destinationId string, currentTime time.Time) error {
+func (b *Bot) AnnounceTime(destinationId string, currentTime time.Time) error {
 	timeText := fmt.Sprintf("%s UTC", currentTime.Format(time.Kitchen))
 	message := slack.NewChatMessage(destinationId, "")
 	message.AsUser = slack.OptionalBool(true)
@@ -443,28 +438,28 @@ func (jb *JarvisBot) AnnounceTime(destinationId string, currentTime time.Time) e
 		},
 	}
 
-	_, messageErr := jb.Client.ChatPostMessage(message)
+	_, messageErr := b.Client.ChatPostMessage(message)
 	if messageErr != nil {
 		fmt.Printf("issue posting message: %v\n", messageErr)
 	}
 	return messageErr
 }
 
-func (jb *JarvisBot) FindUser(userId string) *slack.User {
-	if user, hasUser := jb.UsersLookup[userId]; hasUser {
+func (b *Bot) FindUser(userID string) *slack.User {
+	if user, hasUser := b.UsersLookup[userID]; hasUser {
 		return &user
 	}
 	return nil
 }
 
-func (jb *JarvisBot) FindChannel(channelId string) *slack.Channel {
-	if channel, hasChannel := jb.ChannelsLookup[channelId]; hasChannel {
+func (b *Bot) FindChannel(channelId string) *slack.Channel {
+	if channel, hasChannel := b.ChannelsLookup[channelId]; hasChannel {
 		return &channel
 	}
 	return nil
 }
 
-func (jb *JarvisBot) createUsersLookup(session *slack.Session) map[string]slack.User {
+func (b *Bot) createUsersLookup(session *slack.Session) map[string]slack.User {
 	lookup := map[string]slack.User{}
 	for x := 0; x < len(session.Users); x++ {
 		user := session.Users[x]
@@ -473,7 +468,7 @@ func (jb *JarvisBot) createUsersLookup(session *slack.Session) map[string]slack.
 	return lookup
 }
 
-func (jb *JarvisBot) createChannelLookup(session *slack.Session) map[string]slack.Channel {
+func (b *Bot) createChannelLookup(session *slack.Session) map[string]slack.Channel {
 	lookup := map[string]slack.Channel{}
 	for x := 0; x < len(session.Channels); x++ {
 		channel := session.Channels[x]
@@ -482,20 +477,20 @@ func (jb *JarvisBot) createChannelLookup(session *slack.Session) map[string]slac
 	return lookup
 }
 
-func (jb *JarvisBot) Say(destinationId string, components ...interface{}) error {
-	jb.LogOutgoingMessage(destinationId, components...)
-	return jb.Client.Say(destinationId, components...)
+func (b *Bot) Say(destinationID string, components ...interface{}) error {
+	b.LogOutgoingMessage(destinationID, components...)
+	return b.Client.Say(destinationID, components...)
 }
 
-func (jb *JarvisBot) Sayf(destinationId string, format string, components ...interface{}) error {
+func (b *Bot) Sayf(destinationID string, format string, components ...interface{}) error {
 	message := fmt.Sprintf(format, components...)
-	jb.LogOutgoingMessage(destinationId, message)
-	return jb.Client.Sayf(destinationId, format, components...)
+	b.LogOutgoingMessage(destinationID, message)
+	return b.Client.Sayf(destinationID, format, components...)
 }
 
-func (jb *JarvisBot) LogIncomingMessage(m *slack.Message) {
-	user := jb.FindUser(m.User)
-	channel := jb.FindChannel(m.Channel)
+func (b *Bot) LogIncomingMessage(m *slack.Message) {
+	user := b.FindUser(m.User)
+	channel := b.FindChannel(m.Channel)
 
 	userName := "system"
 	if user != nil {
@@ -503,27 +498,27 @@ func (jb *JarvisBot) LogIncomingMessage(m *slack.Message) {
 	}
 
 	if channel != nil {
-		jb.Logf("=> #%s (%s) - %s: %s", channel.Name, channel.Id, userName, m.Text)
+		b.Logf("=> #%s (%s) - %s: %s", channel.Name, channel.Id, userName, m.Text)
 	} else {
-		jb.Logf("=> PM - %s: %s", userName, m.Text)
+		b.Logf("=> PM - %s: %s", userName, m.Text)
 	}
 }
 
-func (jb *JarvisBot) LogOutgoingMessage(destinationId string, components ...interface{}) {
+func (b *Bot) LogOutgoingMessage(destinationId string, components ...interface{}) {
 	if Like(destinationId, "^C") {
-		channel := jb.FindChannel(destinationId)
-		jb.Logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprint(components...))
+		channel := b.FindChannel(destinationId)
+		b.Logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.Id, fmt.Sprint(components...))
 	} else {
-		jb.Logf("<= PM - jarvis: %s", fmt.Sprint(components...))
+		b.Logf("<= PM - jarvis: %s", fmt.Sprint(components...))
 	}
 }
 
-func (jb *JarvisBot) Log(components ...interface{}) {
+func (b *Bot) Log(components ...interface{}) {
 	message := fmt.Sprint(components...)
-	fmt.Printf("%s - %s - %s\n", jb.OrganizationName, time.Now().UTC().Format(time.RFC3339), message)
+	fmt.Printf("%s - %s - %s\n", b.OrganizationName, time.Now().UTC().Format(time.RFC3339), message)
 }
 
-func (jb *JarvisBot) Logf(format string, components ...interface{}) {
+func (b *Bot) Logf(format string, components ...interface{}) {
 	message := fmt.Sprintf(format, components...)
-	fmt.Printf("%s - %s - %s\n", jb.OrganizationName, time.Now().UTC().Format(time.RFC3339), message)
+	fmt.Printf("%s - %s - %s\n", b.OrganizationName, time.Now().UTC().Format(time.RFC3339), message)
 }
