@@ -38,6 +38,11 @@
 			"revisionTime": "2016-02-18T13:00:36-08:00"
 		},
 		{
+			"path": "github.com/dlintw/goconf",
+			"revision": "dcc070983490608a14480e3bf943bad464785df5",
+			"revisionTime": "2012-02-28T16:26:10+08:00"
+		},
+		{
 			"path": "github.com/gorilla/websocket",
 			"revision": "4935ba31a2adbfcd9e08b86d2657659afbf1af9a",
 			"revisionTime": "2016-02-17T09:43:51-08:00"
