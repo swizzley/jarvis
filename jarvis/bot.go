@@ -166,7 +166,7 @@ func (b *Bot) Init() error {
 	b.client.Listen(slack.EventMessage, func(m *slack.Message, c *slack.Client) {
 		resErr := b.dispatchResponse(m)
 		if resErr != nil {
-			c.Sayf("there was an error handling the message:\n> %s", resErr.Error())
+			c.Sayf(m.Channel, "there was an error handling the message:\n> %s", resErr.Error())
 			b.Log(resErr)
 		}
 	})
