@@ -1,9 +1,11 @@
-package jarvis
+package jobs
 
 import (
 	"time"
 
 	"github.com/blendlabs/go-chronometer"
+	"github.com/wcharczuk/go-slack"
+	"github.com/wcharczuk/jarvis/jarvis/core"
 )
 
 // OnTheQuarterHour is a schedule that fires every 15 minutes, on the quarter hours.
@@ -53,13 +55,13 @@ func (o OnTheHour) GetNextRunTime(after *time.Time) time.Time {
 }
 
 // NewClock returns a new clock job instance.
-func NewClock(j *JarvisBot) *Clock {
+func NewClock(j core.Bot) *Clock {
 	return &Clock{Bot: j}
 }
 
 // Clock is a job that announces the time through a given bot.
 type Clock struct {
-	Bot *JarvisBot
+	Bot core.Bot
 }
 
 // Name returns the name of the chronometer job.
@@ -69,13 +71,11 @@ func (t Clock) Name() string {
 
 // Execute is the actual code that runs when the job is fired.
 func (t Clock) Execute(ct *chronometer.CancellationToken) error {
-	currentTime := time.Now().UTC()
-
-	for x := 0; x < len(t.Bot.Client.ActiveChannels); x++ {
-		channelID := t.Bot.Client.ActiveChannels[x]
-		err := t.Bot.AnnounceTime(channelID, currentTime)
+	for x := 0; x < len(t.Bot.ActiveChannels()); x++ {
+		channelID := t.Bot.ActiveChannels()[x]
+		err := t.Bot.TriggerAction("time", &slack.Message{Channel: channelID})
 		if err != nil {
-			t.Bot.Logf("Error announcing time: %v", err)
+			return err
 		}
 	}
 	return nil

@@ -1,4 +1,4 @@
-package jarvis
+package jobs
 
 import (
 	"testing"
