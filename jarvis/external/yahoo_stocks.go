@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/blendlabs/go-exception"
-	"github.com/blendlabs/go-request"
+	"github.com/wcharczuk/jarvis/jarvis/core"
 )
 
 // StockInfo represents information about a stock.
@@ -28,8 +28,8 @@ func StockPrice(tickers []string, format string) ([]StockInfo, error) {
 		return []StockInfo{}, nil
 	}
 
-	rawResults, meta, resErr := request.NewRequest().AsGet().
-		WithUrl("http://finance.yahoo.com/d/quotes.csv").
+	rawResults, meta, resErr := core.NewExternalRequest().AsGet().
+		WithUrl("http://download.finance.yahoo.com/d/quotes.csv").
 		WithQueryString("s", strings.Join(tickers, "+")).
 		WithQueryString("f", format).
 		FetchStringWithMeta()

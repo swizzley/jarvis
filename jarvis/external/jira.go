@@ -1,6 +1,6 @@
 package external
 
-import "github.com/blendlabs/go-request"
+import "github.com/wcharczuk/jarvis/jarvis/core"
 
 // JiraIssue represents JIRA metadata.
 type JiraIssue struct {
@@ -77,6 +77,6 @@ type JiraPriority struct {
 // GetJiraIssue gets the metadata for a given issueID.
 func GetJiraIssue(user, password, host, issueID string) (*JiraIssue, error) {
 	var issue JiraIssue
-	fetchErr := request.NewRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPath("rest/api/2/issue/%s", issueID).FetchJsonToObject(&issue)
+	fetchErr := core.NewExternalRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPath("rest/api/2/issue/%s", issueID).FetchJsonToObject(&issue)
 	return &issue, fetchErr
 }

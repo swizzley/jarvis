@@ -133,7 +133,6 @@ func (c *Core) handleChannels(b core.Bot, m *slack.Message) error {
 		}
 	}
 	return b.Say(m.Channel, activeChannelsText)
-
 }
 
 func (c *Core) handleSalutation(b core.Bot, m *slack.Message) error {
@@ -145,9 +144,7 @@ func (c *Core) handleSalutation(b core.Bot, m *slack.Message) error {
 func (c *Core) handleMentionCatchAll(b core.Bot, m *slack.Message) error {
 	message := util.TrimWhitespace(core.LessMentions(m.Text))
 	if core.IsSalutation(message) {
-		user := b.FindUser(m.User)
-		salutation := []string{"hey %s", "hi %s", "hello %s", "ohayo gozaimasu %s", "salut %s", "bonjour %s", "yo %s", "sup %s"}
-		return b.Sayf(m.Channel, core.Random(salutation), strings.ToLower(user.Profile.FirstName))
+		return c.handleSalutation(b, m)
 	}
 	return c.handleUnknown(b, m)
 }

@@ -34,22 +34,22 @@ func (c *Config) Name() string {
 // Actions returns the actions for the module.
 func (c *Config) Actions() []core.Action {
 	return []core.Action{
-		core.Action{ID: ActionConfigSet, MessagePattern: "^config:(.*) (.*)", Description: "Set config values", Handler: c.handleConfigSet},
-		core.Action{ID: ActionConfigGet, MessagePattern: "^config:(.*)", Description: "Get config values", Handler: c.handleConfigGet},
+		core.Action{ID: ActionConfigSet, MessagePattern: "^config:(.+) (.+)", Description: "Set config values", Handler: c.handleConfigSet},
+		core.Action{ID: ActionConfigGet, MessagePattern: "^config:(.+)", Description: "Get config values", Handler: c.handleConfigGet},
 		core.Action{ID: ActionConfig, MessagePattern: "^config", Description: "Prints the current config", Handler: c.handleConfig},
 	}
 }
 
 func (c *Config) handleConfigSet(b core.Bot, m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
-	parts := core.Extract(messageWithoutMentions, "^config:(.*) (.*)")
+	parts := core.ExtractSubMatches(messageWithoutMentions, "^config:(.+) (.+)")
 
-	if len(parts) < 2 {
+	if len(parts) < 3 {
 		return exception.Newf("malformed message for `%s`", ActionConfigSet)
 	}
 
-	key := parts[0]
-	value := parts[1]
+	key := parts[1]
+	value := parts[2]
 
 	setting := value
 	if core.LikeAny(value, "true", "yes", "on", "1") {
@@ -63,13 +63,13 @@ func (c *Config) handleConfigSet(b core.Bot, m *slack.Message) error {
 
 func (c *Config) handleConfigGet(b core.Bot, m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
-	parts := core.Extract(messageWithoutMentions, "^config:(.*) (.*)")
+	parts := core.ExtractSubMatches(messageWithoutMentions, "^config:(.+)")
 
 	if len(parts) < 2 {
-		return exception.Newf("malformed message for `%s`", ActionConfigSet)
+		return exception.Newf("malformed message for `%s`", ActionConfigGet)
 	}
 
-	key := parts[0]
+	key := parts[1]
 	value := b.Configuration()[key]
 	return b.Sayf(m.Channel, "> %s: `%s` = %s", ActionConfigGet, key, value)
 }

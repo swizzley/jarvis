@@ -37,12 +37,13 @@ func (s *Stocks) Actions() []core.Action {
 
 func (s *Stocks) handleStockPrice(b core.Bot, m *slack.Message) error {
 	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
-	pieces := core.Extract(messageWithoutMentions, "^stock:price (.*)")
-	if len(pieces) < 1 {
+	pieces := core.ExtractSubMatches(messageWithoutMentions, "^stock:price (.*)")
+
+	if len(pieces) < 2 {
 		return exception.Newf("invalid input for %s", ActionStockPrice)
 	}
 
-	rawTicker := pieces[len(pieces)-1]
+	rawTicker := pieces[1]
 	tickers := []string{}
 	if strings.Contains(rawTicker, ",") {
 		tickers = strings.Split(rawTicker, ",")
@@ -71,7 +72,7 @@ func (s *Stocks) announceStocks(b core.Bot, destinationID string, stockInfo []ex
 				changePct := stock.Values[3]
 				stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%d* ch: *%s* *%s*\n", stock.Ticker, stock.Values[0], int(stock.Values[1].(float64)), changeText, util.StripQuotes(changePct.(string)))
 			} else {
-				return b.Sayf(destinationID, "There was an issue with `%s`", stock.Ticker)
+				return exception.Newf("There was an issue with `%s`", stock.Ticker)
 			}
 		}
 	}
