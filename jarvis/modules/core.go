@@ -54,9 +54,9 @@ func (c *Core) Actions() []core.Action {
 		core.Action{ID: ActionTime, MessagePattern: "^time", Description: "Prints the current time.", Handler: c.handleTime},
 		core.Action{ID: ActionTell, MessagePattern: "^tell", Description: "Tell people things.", Handler: c.handleTell},
 		core.Action{ID: ActionChannels, MessagePattern: "^channels", Description: "Prints the channels I'm currently listening to.", Handler: c.handleChannels},
-		core.Action{ID: ActionMentionCatchAll, MessagePattern: "(.*)", Description: "I'll do the best I can.", Handler: c.handleMentionCatchAll},
 
-		core.Action{ID: ActionPassiveCatchAll, Passive: true, MessagePattern: "(.*)", Description: "I'll do the best I can (passively).", Handler: c.handlePassiveCatchAll},
+		core.Action{ID: ActionMentionCatchAll, MessagePattern: "(.*)", Description: "I'll do the best I can.", Handler: c.handleMentionCatchAll, Priority: core.PriorityCatchAll},
+		core.Action{ID: ActionPassiveCatchAll, Passive: true, MessagePattern: "(.*)", Description: "I'll do the best I can (passively).", Handler: c.handlePassiveCatchAll, Priority: core.PriorityCatchAll},
 
 		core.Action{ID: ActionSalutation, Description: "Salutation Response.", Handler: c.handleSalutation},
 		core.Action{ID: ActionUnknown, Description: "Unknown Response.", Handler: c.handleUnknown},

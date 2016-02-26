@@ -93,34 +93,39 @@ func LessMentions(message string) string {
 func LessSpecificMention(message, userID string) string {
 	output := ""
 	workingUserID := ""
+	tagBuffer := ""
 	state := 0
 	for _, c := range message {
 		switch state {
 		case 0:
 			if c == rune("<"[0]) {
 				state = 1
+				tagBuffer = "<"
 			} else {
 				output = output + string(c)
 			}
 		case 1:
 			if c == rune("@"[0]) {
+				tagBuffer = tagBuffer + string(c)
 				state = 2
 			} else {
 				state = 0
-				output = output + string(c)
+				output = output + tagBuffer + string(c)
+				tagBuffer = ""
 			}
 		case 2:
+			tagBuffer = tagBuffer + string(c)
 			if c == rune(">"[0]) {
 				if workingUserID != userID {
 					state = 0
-					output = output + fmt.Sprintf("<@%s>", workingUserID)
+					output = output + tagBuffer
 				} else {
 					state = 3
 				}
 				workingUserID = ""
-			} else {
-				workingUserID = workingUserID + string(c)
+				tagBuffer = ""
 			}
+			workingUserID = workingUserID + string(c)
 		case 3:
 			if c != rune(" "[0]) && c != rune(":"[0]) {
 				state = 0
@@ -136,6 +141,41 @@ func RemoveTags(message string) string {
 	output := ""
 	for _, c := range message {
 		if !(c == rune("<"[0]) || c == rune(">"[0])) {
+			output = output + string(c)
+		}
+	}
+	return output
+}
+
+// FixLinks removes the weird slack specific link syntax.
+func FixLinks(message string) string {
+	output := ""
+	state := 0
+	tagBuffer := ""
+	for _, c := range message {
+		switch state {
+		case 0: //normal text
+			if c == rune("<"[0]) {
+				state = 1
+				tagBuffer = "<"
+				break
+			}
+			output = output + string(c)
+		case 1:
+			tagBuffer = tagBuffer + string(c)
+			if c == rune("|"[0]) {
+				state = 2
+				break
+			} else if c == rune(">"[0]) {
+				state = 0
+				output = output + tagBuffer
+				break
+			}
+		case 2:
+			if c == rune(">"[0]) {
+				state = 0
+				break
+			}
 			output = output + string(c)
 		}
 	}

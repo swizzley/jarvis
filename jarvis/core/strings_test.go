@@ -43,6 +43,10 @@ func TestLessSpecificMention(t *testing.T) {
 	message := "this is a test <@abc123> of specific mentions <@bca321> etc."
 	lessMentions := LessSpecificMention(message, "abc123")
 	a.Equal("this is a test of specific mentions <@bca321> etc.", lessMentions)
+
+	regression1 := "<@U0K0N6L85>: run ping <http://google.com|google.com>"
+	regression1LessMentions := LessSpecificMention(regression1, "U0K0N6L85")
+	a.Equal("run ping <http://google.com|google.com>", regression1LessMentions)
 }
 
 func TestExtract(t *testing.T) {
@@ -56,4 +60,21 @@ func TestExtract(t *testing.T) {
 
 	noResults := Extract(text, "(BUGS-[0-9]+)")
 	a.Empty(noResults)
+}
+
+func TestFixLinks(t *testing.T) {
+	a := assert.New(t)
+
+	messageWithLink := "this is a test <http://google.com|google.com> of links"
+	messageWithLinkAndMention := "this is a test <http://google.com|google.com> of links and <@abc1234> of mentions"
+	messageWithMention := "this is a test <@abc123> of mentions"
+	messageWithoutAnything := "this is a test"
+	regression1 := " run ping <http://google.com|google.com>"
+
+	a.Equal("this is a test google.com of links", FixLinks(messageWithLink))
+	a.Equal("this is a test google.com of links and <@abc1234> of mentions", FixLinks(messageWithLinkAndMention))
+	a.Equal("this is a test <@abc123> of mentions", FixLinks(messageWithMention))
+	a.Equal("this is a test", FixLinks(messageWithoutAnything))
+
+	a.Equal(" run ping google.com", FixLinks(regression1))
 }

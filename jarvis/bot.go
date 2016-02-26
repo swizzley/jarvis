@@ -2,6 +2,7 @@ package jarvis
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 
 // NewBot returns a new Bot instance.
 func NewBot(token string) *Bot {
-	return &Bot{token: token, jobManager: chronometer.NewJobManager(), state: map[string]interface{}{}, configuration: map[string]string{core.OptionPassive: "false"}, actions: map[string]core.Action{}}
+	return &Bot{token: token, jobManager: chronometer.NewJobManager(), state: map[string]interface{}{}, configuration: map[string]string{core.OptionPassive: "false"}, actionLookup: map[string]core.Action{}, mentionActions: []core.Action{}, passiveActions: []core.Action{}}
 }
 
 // Bot is the main primitive.
@@ -30,7 +31,9 @@ type Bot struct {
 	jobManager       *chronometer.JobManager
 	client           *slack.Client
 
-	actions        map[string]core.Action
+	mentionActions []core.Action
+	passiveActions []core.Action
+	actionLookup   map[string]core.Action
 	UsersLookup    map[string]slack.User
 	ChannelsLookup map[string]slack.Channel
 }
@@ -72,27 +75,62 @@ func (b *Bot) Client() *slack.Client {
 
 // Actions returns the actions loaded for a bot
 func (b *Bot) Actions() []core.Action {
-	actions := []core.Action{}
-	for _, action := range b.actions {
-		actions = append(actions, action)
-	}
-
-	return actions
+	allActions := []core.Action{}
+	allActions = append(allActions, b.mentionActions...)
+	allActions = append(allActions, b.passiveActions...)
+	sort.Sort(core.ActionsByPriority(allActions))
+	return allActions
 }
 
 // AddAction adds an action for the bot.
 func (b *Bot) AddAction(action core.Action) {
-	b.actions[action.ID] = action
+	if action.Priority == 0 {
+		action.Priority = core.PriorityNormal
+	}
+	if action.Passive {
+		b.passiveActions = append(b.passiveActions, action)
+
+		sortable := core.ActionsByPriority(b.passiveActions)
+		sort.Sort(sortable)
+		b.passiveActions = sortable
+	} else {
+		b.mentionActions = append(b.mentionActions, action)
+
+		sortable := core.ActionsByPriority(b.mentionActions)
+		sort.Sort(sortable)
+		b.mentionActions = sortable
+	}
+	b.actionLookup[action.ID] = action
 }
 
 // RemoveAction removes an action from the bot.
 func (b *Bot) RemoveAction(id string) {
-	delete(b.actions, id)
+	action, hasAction := b.actionLookup[id]
+	if !hasAction {
+		return
+	}
+
+	if action.Passive {
+		b.passiveActions = filterActions(b.passiveActions, id)
+	} else {
+		b.mentionActions = filterActions(b.mentionActions, id)
+	}
+	delete(b.actionLookup, id)
+}
+
+func filterActions(actions []core.Action, id string) []core.Action {
+	newActions := []core.Action{}
+	for _, action := range actions {
+		if action.ID != id {
+			newActions = append(newActions, action)
+		}
+	}
+	return newActions
 }
 
 // TriggerAction triggers and action with a given message.
 func (b *Bot) TriggerAction(id string, m *slack.Message) error {
-	if action, hasAction := b.actions[id]; hasAction {
+	if action, hasAction := b.actionLookup[id]; hasAction {
 		return action.Handler(b, m)
 	}
 	return exception.Newf("action %s is not loaded.", id)
@@ -113,11 +151,12 @@ func (b *Bot) LoadModule(m core.BotModule) {
 
 // Init connects the bot to Slack.
 func (b *Bot) Init() error {
-	b.LoadModule(&modules.Core{})
-	b.LoadModule(&modules.Config{})
-	b.LoadModule(&modules.Jobs{})
-	//b.LoadModule(&modules.Jira{})
+
+	b.LoadModule(&modules.ConsoleRunner{})
 	b.LoadModule(&modules.Stocks{})
+	b.LoadModule(&modules.Jobs{})
+	b.LoadModule(&modules.Config{})
+	b.LoadModule(&modules.Core{})
 
 	client := slack.Connect(b.token)
 	b.client = client
@@ -128,6 +167,7 @@ func (b *Bot) Init() error {
 		resErr := b.dispatchResponse(m)
 		if resErr != nil {
 			b.Log(resErr)
+			c.Sayf("there was an error handling the message:\n> %s", resErr.Error())
 		}
 	})
 	b.jobManager.LoadJob(jobs.NewClock(b))
@@ -164,20 +204,16 @@ func (b *Bot) dispatchResponse(m *slack.Message) error {
 		if m.User != "slackbot" && m.User != b.id && !user.IsBot {
 			messageText := util.TrimWhitespace(core.LessMentions(m.Text))
 			if core.IsUserMention(m.Text, b.id) || core.IsDM(m.Channel) {
-				for _, action := range b.Actions() {
-					if !action.Passive {
-						if core.Like(messageText, action.MessagePattern) {
-							return action.Handler(b, m)
-						}
+				for _, action := range b.mentionActions {
+					if core.Like(messageText, action.MessagePattern) && len(action.MessagePattern) != 0 {
+						return action.Handler(b, m)
 					}
 				}
 			} else {
 				if b.passivesEnabled() {
-					for _, action := range b.Actions() {
-						if action.Passive {
-							if core.Like(messageText, action.MessagePattern) {
-								return action.Handler(b, m)
-							}
+					for _, action := range b.passiveActions {
+						if core.Like(messageText, action.MessagePattern) && len(action.MessagePattern) != 0 {
+							return action.Handler(b, m)
 						}
 					}
 				}
