@@ -115,6 +115,10 @@ func OptionalString(value string) *string {
 	return &value
 }
 
+func OptionalBool(value bool) *bool {
+	return &value
+}
+
 func OptionalTime(value time.Time) *time.Time {
 	return &value
 }
