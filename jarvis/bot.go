@@ -166,8 +166,8 @@ func (b *Bot) Init() error {
 	b.client.Listen(slack.EventMessage, func(m *slack.Message, c *slack.Client) {
 		resErr := b.dispatchResponse(m)
 		if resErr != nil {
-			b.Log(resErr)
 			c.Sayf("there was an error handling the message:\n> %s", resErr.Error())
+			b.Log(resErr)
 		}
 	})
 	b.jobManager.LoadJob(jobs.NewClock(b))
