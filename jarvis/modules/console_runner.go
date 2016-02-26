@@ -42,7 +42,7 @@ func (cr *ConsoleRunner) Actions() []core.Action {
 
 func (cr *ConsoleRunner) isWhitelistedCommand(cmd string) bool {
 	switch cmd {
-	case "traceroute", "whois", "ping", "w", "ps", "uptime":
+	case "traceroute", "whois", "ping", "w", "ps", "uptime", "ssh", "telnet", "dig":
 		return true
 	default:
 		return false
