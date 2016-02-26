@@ -17,6 +17,7 @@ type MessageHandler func(b Bot, m *slack.Message) error
 
 // BotModule is a suite of actions (either Mention driven or Passive).
 type BotModule interface {
+	Name() string
 	MentionCommands() []Action
 	PassiveCommands() []Action
 }
@@ -27,6 +28,9 @@ type Bot interface {
 
 	MentionCommands() []Action
 	PassiveCommands() []Action
+
+	TriggerMentionCommand(id string, m *slack.Message) error
+	TriggerPassiveCommand(id string, m *slack.Message) error
 
 	GetClient() *slack.Client
 	GetActiveChannels() []slack.Channel

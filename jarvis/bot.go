@@ -423,28 +423,6 @@ func (b *Bot) AnnounceStocks(destinationId string, stockInfo []external.StockInf
 	return b.Say(destinationId, stockText)
 }
 
-func (b *Bot) AnnounceTime(destinationId string, currentTime time.Time) error {
-	timeText := fmt.Sprintf("%s UTC", currentTime.Format(time.Kitchen))
-	message := slack.NewChatMessage(destinationId, "")
-	message.AsUser = slack.OptionalBool(true)
-	message.UnfurlLinks = slack.OptionalBool(false)
-	message.UnfurlMedia = slack.OptionalBool(false)
-	message.Attachments = []slack.ChatMessageAttachment{
-		slack.ChatMessageAttachment{
-			Fallback: fmt.Sprintf("The time is now:\n>%s", timeText),
-			Color:    slack.OptionalString("#4099FF"),
-			Pretext:  slack.OptionalString("The time is now:"),
-			Text:     slack.OptionalString(timeText),
-		},
-	}
-
-	_, messageErr := b.Client.ChatPostMessage(message)
-	if messageErr != nil {
-		fmt.Printf("issue posting message: %v\n", messageErr)
-	}
-	return messageErr
-}
-
 func (b *Bot) FindUser(userID string) *slack.User {
 	if user, hasUser := b.UsersLookup[userID]; hasUser {
 		return &user
