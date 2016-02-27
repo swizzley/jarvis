@@ -4,8 +4,8 @@
 	"package": [
 		{
 			"path": "github.com/blendlabs/go-assert",
-			"revision": "192dc078cd1c144e8fec85530e7d49325888c28c",
-			"revisionTime": "2016-01-29T09:15:17-08:00"
+			"revision": "856087940bca32febaed6b29f99c2cc220f05867",
+			"revisionTime": "2016-02-26T13:41:22-08:00"
 		},
 		{
 			"path": "github.com/blendlabs/go-chronometer",
@@ -24,18 +24,13 @@
 		},
 		{
 			"path": "github.com/blendlabs/go-util",
-			"revision": "a81a90772896b4047308eae53eab002b533ccbf9",
-			"revisionTime": "2016-02-18T13:00:36-08:00"
+			"revision": "b7ac099eefa961b0bf5174aa7c245af6a1811d34",
+			"revisionTime": "2016-02-25T21:03:07-08:00"
 		},
 		{
 			"path": "github.com/blendlabs/go-util/collections",
-			"revision": "a81a90772896b4047308eae53eab002b533ccbf9",
-			"revisionTime": "2016-02-18T13:00:36-08:00"
-		},
-		{
-			"path": "github.com/blendlabs/go-util/linq",
-			"revision": "a81a90772896b4047308eae53eab002b533ccbf9",
-			"revisionTime": "2016-02-18T13:00:36-08:00"
+			"revision": "b7ac099eefa961b0bf5174aa7c245af6a1811d34",
+			"revisionTime": "2016-02-25T21:03:07-08:00"
 		},
 		{
 			"path": "github.com/dlintw/goconf",
@@ -49,8 +44,8 @@
 		},
 		{
 			"path": "github.com/wcharczuk/go-slack",
-			"revision": "389b24797596ed490446d3106ecee56c21bb4f53",
-			"revisionTime": "2016-02-25T16:36:35-08:00"
+			"revision": "332226367f640be283ac767bac6d68a4514b0374",
+			"revisionTime": "2016-02-26T18:53:54-08:00"
 		}
 	]
 }
