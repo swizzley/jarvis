@@ -156,9 +156,10 @@ func (b *Bot) Init() error {
 	b.LoadModule(&modules.Stocks{})
 	b.LoadModule(&modules.Jobs{})
 	b.LoadModule(&modules.Config{})
+	b.LoadModule(&modules.Util{})
 	b.LoadModule(&modules.Core{})
 
-	client := slack.Connect(b.token)
+	client := slack.NewClient(b.token)
 	b.client = client
 	b.client.Listen(slack.EventHello, func(m *slack.Message, c *slack.Client) {
 		b.Log("slack is connected")
@@ -177,7 +178,7 @@ func (b *Bot) Init() error {
 
 // Start starts the bot and connects to Slack.
 func (b *Bot) Start() error {
-	session, err := b.client.Start()
+	session, err := b.client.Connect()
 	if err != nil {
 		return err
 	}

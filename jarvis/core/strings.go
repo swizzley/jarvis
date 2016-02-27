@@ -262,3 +262,7 @@ func ReplaceAny(corpus string, replacement string, values ...string) string {
 
 	return output
 }
+
+func Mentions(corpus string) []string {
+	return ExtractSubMatches(corpus, "<@(.*)>")
+}
