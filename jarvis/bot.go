@@ -9,6 +9,7 @@ import (
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-util"
+	"github.com/blendlabs/go-util/collections"
 	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis/jarvis/core"
 	"github.com/wcharczuk/jarvis/jarvis/jobs"
@@ -17,7 +18,17 @@ import (
 
 // NewBot returns a new Bot instance.
 func NewBot(token string) *Bot {
-	return &Bot{token: token, jobManager: chronometer.NewJobManager(), state: map[string]interface{}{}, configuration: map[string]string{core.OptionPassive: "false"}, actionLookup: map[string]core.Action{}, mentionActions: []core.Action{}, passiveActions: []core.Action{}}
+	return &Bot{
+		token:          token,
+		jobManager:     chronometer.NewJobManager(),
+		state:          map[string]interface{}{},
+		configuration:  map[string]string{core.OptionPassive: "false"},
+		actionLookup:   map[string]core.Action{},
+		modules:        map[string]core.BotModule{},
+		loadedModules:  collections.StringSet{},
+		mentionActions: []core.Action{},
+		passiveActions: []core.Action{},
+	}
 }
 
 // Bot is the main primitive.
@@ -30,6 +41,9 @@ type Bot struct {
 	state            map[string]interface{}
 	jobManager       *chronometer.JobManager
 	client           *slack.Client
+
+	modules       map[string]core.BotModule
+	loadedModules collections.StringSet
 
 	mentionActions []core.Action
 	passiveActions []core.Action
@@ -141,24 +155,54 @@ func (b *Bot) ActiveChannels() []string {
 	return b.client.ActiveChannels
 }
 
-// LoadModule loads a given bot module
-func (b *Bot) LoadModule(m core.BotModule) {
-	actions := m.Actions()
-	for _, action := range actions {
-		b.AddAction(action)
+// RegisterModule loads a given bot module
+func (b *Bot) RegisterModule(m core.BotModule) {
+	b.modules[m.Name()] = m
+}
+
+// LoadModule loads a registered module.
+func (b *Bot) LoadModule(moduleName string) {
+	if m, hasModule := b.modules[moduleName]; hasModule {
+		actions := m.Actions()
+		for _, action := range actions {
+			b.AddAction(action)
+		}
+		b.loadedModules.Add(moduleName)
+	}
+}
+
+func (b *Bot) loadAllRegisteredModules() {
+	for k := range b.modules {
+		b.LoadModule(k)
+	}
+}
+
+func (b *Bot) loadConfiguredModules() {
+	configEntry, hasEntry := b.configuration["MODULES"]
+	if !hasEntry || strings.ToLower(configEntry) == "all" {
+		b.loadAllRegisteredModules()
+		return
+	}
+
+	moduleNames := strings.Split(configEntry, ",")
+	for _, name := range moduleNames {
+		nameLower := strings.ToLower(name)
+		b.LoadModule(nameLower)
 	}
 }
 
 // Init connects the bot to Slack.
 func (b *Bot) Init() error {
 
-	b.LoadModule(&modules.ConsoleRunner{})
-	b.LoadModule(&modules.Jira{})
-	b.LoadModule(&modules.Stocks{})
-	b.LoadModule(&modules.Jobs{})
-	b.LoadModule(&modules.Config{})
-	b.LoadModule(&modules.Util{})
-	b.LoadModule(&modules.Core{})
+	b.RegisterModule(&modules.ConsoleRunner{})
+	b.RegisterModule(&modules.Jira{})
+	b.RegisterModule(&modules.Stocks{})
+	b.RegisterModule(&modules.Jobs{})
+	b.RegisterModule(&modules.Config{})
+	b.RegisterModule(&modules.Util{})
+	b.RegisterModule(&modules.Core{})
+
+	b.loadConfiguredModules() //reads the "MODULES" configuration entry
 
 	client := slack.NewClient(b.token)
 	b.client = client
@@ -175,8 +219,11 @@ func (b *Bot) Init() error {
 
 	b.configuration[core.OptionPassive] = "true"
 
-	b.jobManager.LoadJob(jobs.NewClock(b))
-	b.jobManager.DisableJob("clock")
+	if b.loadedModules.Contains(modules.ModuleJobs) {
+		b.jobManager.LoadJob(jobs.NewClock(b))
+		b.jobManager.DisableJob("clock")
+	}
+
 	return nil
 }
 

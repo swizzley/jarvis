@@ -80,6 +80,7 @@ type JiraPriority struct {
 	Name    string `json:"name"`
 }
 
+// JiraError is an error returned from jira.
 type JiraError struct {
 	ErrorMessages []string
 }
