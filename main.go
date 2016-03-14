@@ -126,7 +126,7 @@ func statusHandler(bots []*jarvis.Bot, w http.ResponseWriter, r *http.Request) {
 func encryptValue(value string) (string, error) {
 	encrypted, encryptError := core.Encrypt(key(), value)
 	if encryptError != nil {
-		return util.EMPTY, encryptError
+		return util.StringEmpty, encryptError
 	}
 
 	return util.Base64Encode(encrypted), nil
@@ -135,11 +135,11 @@ func encryptValue(value string) (string, error) {
 func decryptValue(cipherText string) (string, error) {
 	tokenBlob, tokenBlobErr := util.Base64Decode(cipherText)
 	if tokenBlobErr != nil {
-		return util.EMPTY, tokenBlobErr
+		return util.StringEmpty, tokenBlobErr
 	}
 	decrypted, decryptedErr := core.Decrypt(key(), tokenBlob)
 	if decryptedErr != nil {
-		return util.EMPTY, decryptedErr
+		return util.StringEmpty, decryptedErr
 	}
 	return decrypted, nil
 }
