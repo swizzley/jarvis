@@ -26,6 +26,12 @@ const (
 
 	// ActionJiraBUGS is the name of the bugs action.
 	ActionJiraBUGS = "jira.bugs"
+
+	// ActionJiraIMP is the name of the bugs action.
+	ActionJiraIMP = "jira.imp"
+
+	// ActionJiraREL is the name of the bugs action.
+	ActionJiraREL = "jira.rel"
 )
 
 // Jira is the jira module.
@@ -41,6 +47,8 @@ func (j *Jira) Actions() []core.Action {
 	return []core.Action{
 		core.Action{ID: ActionJiraDSP, Passive: true, MessagePattern: "(DSP-[0-9]+)", Description: "Fetch jira DSP task info.", Handler: j.handleJira},
 		core.Action{ID: ActionJiraBUGS, Passive: true, MessagePattern: "(BUGS-[0-9]+)", Description: "Fetch jira BUGS task info.", Handler: j.handleJira},
+		core.Action{ID: ActionJiraIMP, Passive: true, MessagePattern: "(IMP-[0-9]+)", Description: "Fetch jira IMP task info.", Handler: j.handleJira},
+		core.Action{ID: ActionJiraREL, Passive: true, MessagePattern: "(REL-[0-9]+)", Description: "Fetch jira REL task info.", Handler: j.handleJira},
 	}
 }
 
@@ -88,6 +96,8 @@ func (j *Jira) extractJiraIssues(text string) []string {
 	issueIds := []string{}
 	issueIds = append(issueIds, core.Extract(text, "(DSP-[0-9]+)")...)
 	issueIds = append(issueIds, core.Extract(text, "(BUGS-[0-9]+)")...)
+	issueIds = append(issueIds, core.Extract(text, "(IMP-[0-9]+)")...)
+	issueIds = append(issueIds, core.Extract(text, "(REL-[0-9]+)")...)
 	return issueIds
 }
 
