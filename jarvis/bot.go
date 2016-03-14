@@ -153,6 +153,7 @@ func (b *Bot) LoadModule(m core.BotModule) {
 func (b *Bot) Init() error {
 
 	b.LoadModule(&modules.ConsoleRunner{})
+	b.LoadModule(&modules.Jira{})
 	b.LoadModule(&modules.Stocks{})
 	b.LoadModule(&modules.Jobs{})
 	b.LoadModule(&modules.Config{})

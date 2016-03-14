@@ -2,123 +2,89 @@ package util
 
 import (
 	"strings"
-	"time"
 
 	"github.com/blendlabs/go-exception"
 )
 
+var (
+	// BooleanTrue represents a true value for a boolean.
+	BooleanTrue Boolean = true
+
+	// BooleanFalse represents a false value for a boolean.
+	BooleanFalse Boolean = false
+)
+
+// KeyValuePair is a pair of key and value.
 type KeyValuePair struct {
 	Key   string
 	Value interface{}
 }
 
+// KVP is a pair of key and value.
 type KVP struct {
 	K string
 	V interface{}
 }
 
+// KeyValuePairOfInt is a pair of key and value.
 type KeyValuePairOfInt struct {
 	Key   string
 	Value int
 }
 
+// KVPI is a pair of key and value.
 type KVPI struct {
 	K string
 	V int
 }
 
+// KeyValuePairOfFloat is a pair of key and value.
 type KeyValuePairOfFloat struct {
 	Key   string
 	Value float64
 }
 
+// KVPF is a pair of key and value.
 type KVPF struct {
 	K string
 	V float64
 }
 
+// KeyValuePairOfString is a pair of key and value.
 type KeyValuePairOfString struct {
 	Key   string
 	Value string
 }
 
+// KVPS is a pair of key and value.
 type KVPS struct {
 	K string
 	V string
 }
 
-var BOOLEAN_TRUE Boolean = true
-var BOOLEAN_FALSE Boolean = false
-
+// Boolean is a type alias for bool that can be unmarshaled from 0|1, true|false etc.
 type Boolean bool
 
+// UnmarshalJSON unmarshals the boolean from json.
 func (bit *Boolean) UnmarshalJSON(data []byte) error {
-	as_string := strings.ToLower(string(data))
-	if as_string == "1" || as_string == "true" {
+	asString := strings.ToLower(string(data))
+	if asString == "1" || asString == "true" {
 		*bit = true
-	} else if as_string == "0" || as_string == "false" {
+		return nil
+	} else if asString == "0" || asString == "false" {
 		*bit = false
-	} else if len(as_string) > 0 && (as_string[0] == '"' || as_string[0] == '\'') {
-		cleaned := StripQuotes(as_string)
+		return nil
+	} else if len(asString) > 0 && (asString[0] == '"' || asString[0] == '\'') {
+		cleaned := StripQuotes(asString)
 		return bit.UnmarshalJSON([]byte(cleaned))
-	} else {
-		return exception.Newf("Boolean unmarshal error: invalid input %s", as_string)
 	}
-	return nil
+	return exception.Newf("Boolean unmarshal error: invalid input %s", asString)
 }
 
+// AsBool returns the stdlib bool value for the boolean.
 func (bit Boolean) AsBool() bool {
 	if bit {
 		return true
-	} else {
-		return false
 	}
-}
-
-func OptionalUInt8(value uint8) *uint8 {
-	return &value
-}
-
-func OptionalUInt16(value uint16) *uint16 {
-	return &value
-}
-
-func OptionalUInt(value uint) *uint {
-	return &value
-}
-
-func OptionalUInt64(value uint64) *uint64 {
-	return &value
-}
-
-func OptionalInt16(value int16) *int16 {
-	return &value
-}
-
-func OptionalInt(value int) *int {
-	return &value
-}
-
-func OptionalInt64(value int64) *int64 {
-	return &value
-}
-
-func OptionalFloat32(value float32) *float32 {
-	return &value
-}
-
-func OptionalFloat64(value float64) *float64 {
-	return &value
-}
-
-func OptionalString(value string) *string {
-	return &value
-}
-
-func OptionalBool(value bool) *bool {
-	return &value
-}
-
-func OptionalTime(value time.Time) *time.Time {
-	return &value
+	return false
 }

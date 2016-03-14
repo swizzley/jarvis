@@ -200,7 +200,7 @@ func LastWord(message string) string {
 	if len(pieces) != 0 {
 		return pieces[len(pieces)-1]
 	}
-	return util.EMPTY
+	return util.StringEmpty
 }
 
 // Like returns if a corpus matches a given regex expr.

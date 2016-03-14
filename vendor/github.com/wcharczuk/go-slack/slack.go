@@ -37,7 +37,6 @@ import (
 	"time"
 
 	"github.com/blendlabs/go-exception"
-	"github.com/blendlabs/go-request"
 	"github.com/gorilla/websocket"
 )
 
@@ -68,7 +67,7 @@ const (
 	ErrorMissingPostType = "missing_post_type"
 	// ErrorRequestTimeout : The method was called via a POST request, but the POST data was either missing or truncated.
 	ErrorRequestTimeout = "request_timeout"
-	// ErrorMessageNotFound	: No message exists with the requested timestamp.
+	// ErrorMessageNotFound No message exists with the requested timestamp.
 	ErrorMessageNotFound = "message_not_found"
 	// ErrorChannelNotFound : Value passed for channel was invalid.
 	ErrorChannelNotFound = "channel_not_found"
@@ -284,10 +283,10 @@ func (rtm *Client) StopListening(event Event) {
 	delete(rtm.EventListeners, event)
 }
 
-// Start begins a session with Slack.
+// Connect begins a session with Slack.
 func (rtm *Client) Connect() (*Session, error) {
 	res := Session{}
-	resErr := request.NewRequest().
+	resErr := NewExternalRequest().
 		AsPost().
 		WithScheme(APIScheme).
 		WithHost(APIEndpoint).
@@ -295,7 +294,7 @@ func (rtm *Client) Connect() (*Session, error) {
 		WithPostData("token", rtm.Token).
 		WithPostData("no_unreads", "true").
 		WithPostData("mpim_aware", "true").
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -484,6 +483,7 @@ func (rtm *Client) removeActiveChannel(channelID string) {
 // API METHODS
 //--------------------------------------------------------------------------------
 
+// AuthTest tests if the token works for a client.
 func (rtm *Client) AuthTest() (*AuthTestResponse, error) {
 	res := AuthTestResponse{}
 	resErr := NewExternalRequest().
@@ -492,7 +492,7 @@ func (rtm *Client) AuthTest() (*AuthTestResponse, error) {
 		WithHost(APIEndpoint).
 		WithPath("api/auth.test").
 		WithPostData("token", rtm.Token).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -509,6 +509,7 @@ func (rtm *Client) AuthTest() (*AuthTestResponse, error) {
 	return &res, nil
 }
 
+// ChannelsHistory returns the messages in a channel.
 func (rtm *Client) ChannelsHistory(channelID string, latest, oldest *time.Time, count int, unreads bool) (*ChannelsHistoryResponse, error) {
 	unreadsValue := "0"
 	if unreads {
@@ -542,7 +543,7 @@ func (rtm *Client) ChannelsHistory(channelID string, latest, oldest *time.Time, 
 		req = req.WithPostData("oldest", Timestamp{time: *latest}.String())
 	}
 
-	resErr := req.FetchJsonToObject(&res)
+	resErr := req.FetchJSONToObject(&res)
 	if resErr != nil {
 		return nil, resErr
 	}
@@ -568,7 +569,7 @@ func (rtm *Client) ChannelsInfo(channelID string) (*Channel, error) {
 		WithPath("api/channels.info").
 		WithPostData("token", rtm.Token).
 		WithPostData("channel", channelID).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -599,7 +600,7 @@ func (rtm *Client) ChannelsList(excludeArchived bool) ([]Channel, error) {
 		req = req.WithPostData("exclude_archived", "1")
 	}
 
-	resErr := req.FetchJsonToObject(&res)
+	resErr := req.FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -616,6 +617,7 @@ func (rtm *Client) ChannelsList(excludeArchived bool) ([]Channel, error) {
 	return res.Channels, nil
 }
 
+// ChannelsMark marks a message.
 func (rtm *Client) ChannelsMark(channelID string, ts Timestamp) error {
 	res := basicResponse{}
 	resErr := NewExternalRequest().
@@ -626,7 +628,7 @@ func (rtm *Client) ChannelsMark(channelID string, ts Timestamp) error {
 		WithPostData("token", rtm.Token).
 		WithPostData("channel", channelID).
 		WithPostData("ts", ts.String()).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return resErr
@@ -653,7 +655,7 @@ func (rtm *Client) ChannelsSetPurpose(channelID, purpose string) error {
 		WithPostData("token", rtm.Token).
 		WithPostData("channel", channelID).
 		WithPostData("purpose", purpose).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return resErr
@@ -681,7 +683,7 @@ func (rtm *Client) ChannelsSetTopic(channelID, topic string) error {
 		WithPostData("token", rtm.Token).
 		WithPostData("channel", channelID).
 		WithPostData("topic", topic).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return resErr
@@ -698,6 +700,7 @@ func (rtm *Client) ChannelsSetTopic(channelID, topic string) error {
 	return nil
 }
 
+// ChatDelete deletes a message.
 func (rtm *Client) ChatDelete(channelID string, ts Timestamp) error {
 	res := basicResponse{}
 	resErr := NewExternalRequest().
@@ -708,7 +711,7 @@ func (rtm *Client) ChatDelete(channelID string, ts Timestamp) error {
 		WithPostData("token", rtm.Token).
 		WithPostData("channel", channelID).
 		WithPostData("ts", ts.String()).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return resErr
@@ -734,7 +737,7 @@ func (rtm *Client) ChatPostMessage(m *ChatMessage) (*ChatMessageResponse, error)
 		WithPath("api/chat.postMessage").
 		WithPostData("token", rtm.Token).
 		WithPostDataFromObject(m).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -751,7 +754,7 @@ func (rtm *Client) ChatPostMessage(m *ChatMessage) (*ChatMessageResponse, error)
 	return &res, nil
 }
 
-// ChatPostMessage posts a message to Slack using the chat api.
+// ChatUpdate updates a chat message.
 func (rtm *Client) ChatUpdate(ts Timestamp, m *ChatMessage) (*ChatMessageResponse, error) { //the response version of the message is returned for verification
 	res := ChatMessageResponse{}
 	resErr := NewExternalRequest().
@@ -762,7 +765,7 @@ func (rtm *Client) ChatUpdate(ts Timestamp, m *ChatMessage) (*ChatMessageRespons
 		WithPostData("token", rtm.Token).
 		WithPostData("ts", ts.String()).
 		WithPostDataFromObject(m).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -779,6 +782,7 @@ func (rtm *Client) ChatUpdate(ts Timestamp, m *ChatMessage) (*ChatMessageRespons
 	return &res, nil
 }
 
+// EmojiList returns a list of current emoji's for a slack.
 func (rtm *Client) EmojiList() (map[string]string, error) {
 	res := emojiResponse{}
 	resErr := NewExternalRequest().
@@ -787,7 +791,7 @@ func (rtm *Client) EmojiList() (map[string]string, error) {
 		WithHost(APIEndpoint).
 		WithPath("api/emoji.list").
 		WithPostData("token", rtm.Token).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -803,6 +807,7 @@ func (rtm *Client) EmojiList() (map[string]string, error) {
 	return res.Emoji, nil
 }
 
+// ReactionsAdd adds a reaction.
 func (rtm *Client) ReactionsAdd(name string, fileID, fileCommentID, channelID *string, ts *Timestamp) error {
 	res := basicResponse{}
 	req := NewExternalRequest().
@@ -824,7 +829,7 @@ func (rtm *Client) ReactionsAdd(name string, fileID, fileCommentID, channelID *s
 		return exception.New("`fileId` or `fileCommentID` or (`channelID` and `ts`) must be not be nil.")
 	}
 
-	resErr := req.FetchJsonToObject(&res)
+	resErr := req.FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return resErr
@@ -840,6 +845,7 @@ func (rtm *Client) ReactionsAdd(name string, fileID, fileCommentID, channelID *s
 	return nil
 }
 
+// ReactionsGet gets reactions.
 func (rtm *Client) ReactionsGet(fileID, fileCommentID, channelID *string, ts *Timestamp) (*ChatMessageResponse, error) {
 	res := ChatMessageResponse{}
 	req := NewExternalRequest().
@@ -860,7 +866,7 @@ func (rtm *Client) ReactionsGet(fileID, fileCommentID, channelID *string, ts *Ti
 		return nil, exception.New("`fileId` or `fileCommentID` or (`channelID` and `ts`) must be not be nil.")
 	}
 
-	resErr := req.FetchJsonToObject(&res)
+	resErr := req.FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -876,6 +882,7 @@ func (rtm *Client) ReactionsGet(fileID, fileCommentID, channelID *string, ts *Ti
 	return &res, nil
 }
 
+// ReactionsRemove removes a reaction.
 func (rtm *Client) ReactionsRemove(name string, fileID, fileCommentID, channelID *string, ts *Timestamp) error {
 	res := basicResponse{}
 	req := NewExternalRequest().
@@ -897,7 +904,7 @@ func (rtm *Client) ReactionsRemove(name string, fileID, fileCommentID, channelID
 		return exception.New("`fileId` or `fileCommentID` or (`channelID` and `ts`) must be not be nil.")
 	}
 
-	resErr := req.FetchJsonToObject(&res)
+	resErr := req.FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return resErr
@@ -913,10 +920,6 @@ func (rtm *Client) ReactionsRemove(name string, fileID, fileCommentID, channelID
 	return nil
 }
 
-func (rtm *Client) ReactionsList(userID *string, full *bool, count *int, page *int) ([]Reaction, error) {
-	return nil, nil
-}
-
 // UsersList returns all users for a given Slack organization.
 func (rtm *Client) UsersList() ([]User, error) {
 	res := usersListResponse{}
@@ -926,7 +929,7 @@ func (rtm *Client) UsersList() ([]User, error) {
 		WithHost(APIEndpoint).
 		WithPath("api/users.list").
 		WithPostData("token", rtm.Token).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr
@@ -949,7 +952,7 @@ func (rtm *Client) UsersInfo(userID string) (*User, error) {
 		WithPath("api/users.info").
 		WithPostData("token", rtm.Token).
 		WithPostData("user", userID).
-		FetchJsonToObject(&res)
+		FetchJSONToObject(&res)
 
 	if resErr != nil {
 		return nil, resErr

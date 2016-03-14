@@ -17,7 +17,7 @@ func TestProcessQueue(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	output := EMPTY
+	output := StringEmpty
 	QueueWorkItem(func(workData interface{}) error {
 		output = workData.(string)
 		wg.Done()
@@ -31,19 +31,20 @@ func TestProcessQueue(t *testing.T) {
 func TestProcessQueueReqeue(t *testing.T) {
 	a := assert.New(t)
 	a.StartTimeout(1*time.Second, "This should take < 1 second")
+
 	defer func() {
 		a.EndTimeout()
 	}()
 
 	StartProcessQueueDispatchers(2)
 
-	maxErrors := MAX_RETRIES - 1
+	maxErrors := ProcessQueueMaxRetries - 1
 	numErrors := 0
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	output := EMPTY
+	output := StringEmpty
 
 	QueueWorkItem(func(workData interface{}) error {
 		if numErrors < maxErrors {

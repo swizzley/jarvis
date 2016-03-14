@@ -29,7 +29,7 @@ func StockPrice(tickers []string, format string) ([]StockInfo, error) {
 	}
 
 	rawResults, meta, resErr := core.NewExternalRequest().AsGet().
-		WithUrl("http://download.finance.yahoo.com/d/quotes.csv").
+		WithURL("http://download.finance.yahoo.com/d/quotes.csv").
 		WithQueryString("s", strings.Join(tickers, "+")).
 		WithQueryString("f", format).
 		FetchStringWithMeta()

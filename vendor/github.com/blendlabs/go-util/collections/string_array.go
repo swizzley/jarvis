@@ -32,5 +32,5 @@ func (sa StringArray) GetByLower(elem string) string {
 			return arrayElem
 		}
 	}
-	return util.EMPTY
+	return util.StringEmpty
 }

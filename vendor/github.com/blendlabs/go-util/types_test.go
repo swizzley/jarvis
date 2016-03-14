@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/blendlabs/go-assert"
@@ -9,23 +10,23 @@ import (
 func TestUnmarshalJSON(t *testing.T) {
 	assert := assert.New(t)
 	valid := []string{"1", "0", "true", "false", "True", "False", `"true"`, `"false"`}
-	not_valid := []string{"foo", "123", "-1", "3.14", "", `""`}
+	notValid := []string{"foo", "123", "-1", "3.14", "", `""`}
 
 	for index, value := range valid {
 		var bit Boolean
-		json_err := bit.UnmarshalJSON([]byte(value))
-		assert.Nil(json_err)
+		jsonErr := bit.UnmarshalJSON([]byte(value))
+		assert.Nil(jsonErr)
 
 		if index%2 == 0 {
-			assert.True(bit.AsBool())
+			assert.True(bit.AsBool(), fmt.Sprintf("%s => %#v\n", value, bit))
 		} else {
 			assert.False(bit.AsBool())
 		}
 	}
 
-	for _, value := range not_valid {
+	for _, value := range notValid {
 		var bit Boolean
-		json_err := bit.UnmarshalJSON([]byte(value))
-		assert.NotNil(json_err)
+		jsonErr := bit.UnmarshalJSON([]byte(value))
+		assert.NotNil(jsonErr)
 	}
 }

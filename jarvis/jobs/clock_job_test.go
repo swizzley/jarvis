@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/blendlabs/go-assert"
+	"github.com/blendlabs/go-chronometer"
 )
 
 func TestOnTheQuarter(t *testing.T) {
 	a := assert.New(t)
 
-	s := OnTheQuarterHour{}
+	s := chronometer.OnTheQuarterHour{}
 
 	now := time.Now().UTC()
 	notNow := s.GetNextRunTime(nil)

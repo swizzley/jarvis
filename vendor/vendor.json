@@ -9,8 +9,8 @@
 		},
 		{
 			"path": "github.com/blendlabs/go-chronometer",
-			"revision": "2158dce95f30ba9a909d1ee067e550d2449a891b",
-			"revisionTime": "2016-02-18T12:38:58-08:00"
+			"revision": "4dde33d87809020866456665a0b0367d0dcf8d85",
+			"revisionTime": "2016-03-08T16:36:50-08:00"
 		},
 		{
 			"path": "github.com/blendlabs/go-exception",
@@ -19,13 +19,13 @@
 		},
 		{
 			"path": "github.com/blendlabs/go-request",
-			"revision": "98e4dd80a68ccf427bed8bdf2f9fb64c8b0da88b",
-			"revisionTime": "2016-02-17T16:56:47-08:00"
+			"revision": "a37b726082682c1f35ae5292b2f8a69ef5f62eae",
+			"revisionTime": "2016-03-08T16:07:20-08:00"
 		},
 		{
 			"path": "github.com/blendlabs/go-util",
-			"revision": "b7ac099eefa961b0bf5174aa7c245af6a1811d34",
-			"revisionTime": "2016-02-25T21:03:07-08:00"
+			"revision": "d41eef312a09c0bccb52f06004cbe2578daa221f",
+			"revisionTime": "2016-03-08T14:03:01-08:00"
 		},
 		{
 			"path": "github.com/blendlabs/go-util/collections",
@@ -44,8 +44,8 @@
 		},
 		{
 			"path": "github.com/wcharczuk/go-slack",
-			"revision": "c693eeb6b9404e63401f700d65ce35e9884e7b60",
-			"revisionTime": "2016-02-26T19:08:21-08:00"
+			"revision": "c30b8ba67a9cb6d04c9afc0b7996487950bef88e",
+			"revisionTime": "2016-03-08T17:33:09-08:00"
 		}
 	]
 }

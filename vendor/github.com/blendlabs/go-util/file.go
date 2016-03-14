@@ -8,9 +8,13 @@ import (
 	"github.com/blendlabs/go-exception"
 )
 
+// ReadChunkHandler is a receiver for a chunk of a file.
 type ReadChunkHandler func(line []byte)
+
+//ReadLineHandler is a receiver for a line of a file.
 type ReadLineHandler func(line string)
 
+// ReadFileByLines reads a file and calls the handler for each line.
 func ReadFileByLines(filePath string, handler ReadLineHandler) error {
 	if f, err := os.Open(filePath); err == nil {
 		defer f.Close()
@@ -26,6 +30,7 @@ func ReadFileByLines(filePath string, handler ReadLineHandler) error {
 	return nil
 }
 
+// ReadFileByChunks reads a file in `chunkSize` pieces, dispatched to the handler.
 func ReadFileByChunks(filePath string, chunkSize int, handler ReadChunkHandler) error {
 	if f, err := os.Open(filePath); err == nil {
 		defer f.Close()

@@ -1,33 +1,39 @@
 package util
 
 const (
-	MAX_RETRIES = 10
+	// ProcessQueueMaxRetries is the maximum times a process queue item will be retried before being dropped.
+	ProcessQueueMaxRetries = 10
 )
 
 // static vars
-var _workerQueue chan processQueueWorker
-var _processQueue = make(chan processQueueEntry, 1024) //buffered work channel. 1024 better be enough
+var (
+	workerQueue  chan processQueueWorker
+	processQueue = make(chan processQueueEntry, 1024) //buffered work channel. 1024 better be enough
+)
 
+// ProcessQueueAction is an action that can be dispatched by the process queue.
 type ProcessQueueAction func(value interface{}) error
 
+// QueueWorkItem adds a work item to the process queue.
 func QueueWorkItem(action ProcessQueueAction, value interface{}) {
-	_processQueue <- processQueueEntry{Action: action, Value: value}
+	processQueue <- processQueueEntry{Action: action, Value: value}
 }
 
+// StartProcessQueueDispatchers starts the dispatcher workers for the process quere.
 func StartProcessQueueDispatchers(numWorkers int) {
-	_workerQueue = make(chan processQueueWorker, numWorkers)
+	workerQueue = make(chan processQueueWorker, numWorkers)
 
 	for id := 0; id < numWorkers; id++ {
-		worker := newProcessQueueWorker(id, _workerQueue)
+		worker := newProcessQueueWorker(id, workerQueue)
 		worker.Start()
 	}
 
 	go func() {
 		for {
 			select {
-			case work := <-_processQueue:
+			case work := <-processQueue:
 				go func() {
-					worker := <-_workerQueue
+					worker := <-workerQueue
 					worker.Work <- work
 				}()
 			}
@@ -42,7 +48,7 @@ type processQueueEntry struct {
 }
 
 type processQueueWorker struct {
-	Id          int
+	ID          int
 	Work        chan processQueueEntry
 	WorkerQueue chan processQueueWorker
 	QuitChan    chan bool
@@ -57,8 +63,8 @@ func (pqw processQueueWorker) Start() {
 				workErr := work.Action(work.Value)
 				if workErr != nil {
 					work.Tries = work.Tries + 1
-					if work.Tries < MAX_RETRIES {
-						_processQueue <- work
+					if work.Tries < ProcessQueueMaxRetries {
+						processQueue <- work
 					}
 				}
 			case <-pqw.QuitChan:
@@ -76,7 +82,7 @@ func (pqw processQueueWorker) Stop() {
 
 func newProcessQueueWorker(id int, workerQueue chan processQueueWorker) processQueueWorker {
 	worker := processQueueWorker{
-		Id:          id,
+		ID:          id,
 		Work:        make(chan processQueueEntry),
 		WorkerQueue: workerQueue,
 		QuitChan:    make(chan bool),

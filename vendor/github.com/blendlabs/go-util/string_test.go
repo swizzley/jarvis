@@ -45,14 +45,14 @@ func TestParse(t *testing.T) {
 	assert.Equal(3, goodInt)
 	assert.Equal(0.0, badInt)
 
-	str_good := Float64ToString(3.14)
-	assert.Equal("3.14", str_good)
+	strGood := Float64ToString(3.14)
+	assert.Equal("3.14", strGood)
 
-	str_good = Float32ToString(3.14)
-	assert.Equal("3.14", str_good)
+	strGood = Float32ToString(3.14)
+	assert.Equal("3.14", strGood)
 
-	str_good = IntToString(3)
-	assert.Equal("3", str_good)
+	strGood = IntToString(3)
+	assert.Equal("3", strGood)
 }
 
 func TestTrimWhitespace(t *testing.T) {
@@ -88,48 +88,48 @@ func TestIsCamelCase(t *testing.T) {
 func TestCombinePathComponents(t *testing.T) {
 	assert := assert.New(t)
 
-	brian_is_a_pedant := CombinePathComponents("foo")
-	assert.Equal("foo", brian_is_a_pedant)
+	value := CombinePathComponents("foo")
+	assert.Equal("foo", value)
 
-	brian_is_a_pedant2 := CombinePathComponents("/foo")
-	assert.Equal("foo", brian_is_a_pedant2)
+	value = CombinePathComponents("/foo")
+	assert.Equal("foo", value)
 
-	brian_is_a_pedant3 := CombinePathComponents("foo/")
-	assert.Equal("foo", brian_is_a_pedant3)
+	value = CombinePathComponents("foo/")
+	assert.Equal("foo", value)
 
-	brian_is_a_pedant4 := CombinePathComponents("/foo/")
-	assert.Equal("foo", brian_is_a_pedant4)
+	value = CombinePathComponents("/foo/")
+	assert.Equal("foo", value)
 
-	dual_test1 := CombinePathComponents("foo", "bar")
-	assert.Equal("foo/bar", dual_test1)
+	value = CombinePathComponents("foo", "bar")
+	assert.Equal("foo/bar", value)
 
-	dual_test2 := CombinePathComponents("foo/", "bar")
-	assert.Equal("foo/bar", dual_test2)
+	value = CombinePathComponents("foo/", "bar")
+	assert.Equal("foo/bar", value)
 
-	dual_test3 := CombinePathComponents("foo/", "/bar")
-	assert.Equal("foo/bar", dual_test3)
+	value = CombinePathComponents("foo/", "/bar")
+	assert.Equal("foo/bar", value)
 
-	dual_test4 := CombinePathComponents("/foo/", "/bar")
-	assert.Equal("foo/bar", dual_test4)
+	value = CombinePathComponents("/foo/", "/bar")
+	assert.Equal("foo/bar", value)
 
-	dual_test5 := CombinePathComponents("/foo/", "/bar/")
-	assert.Equal("foo/bar", dual_test5)
+	value = CombinePathComponents("/foo/", "/bar/")
+	assert.Equal("foo/bar", value)
 
-	test1 := CombinePathComponents("foo", "bar", "baz")
-	assert.Equal("foo/bar/baz", test1)
+	value = CombinePathComponents("foo", "bar", "baz")
+	assert.Equal("foo/bar/baz", value)
 
-	test2 := CombinePathComponents("foo/", "bar/", "baz")
-	assert.Equal("foo/bar/baz", test2)
+	value = CombinePathComponents("foo/", "bar/", "baz")
+	assert.Equal("foo/bar/baz", value)
 
-	test3 := CombinePathComponents("foo/", "bar/", "baz/")
-	assert.Equal("foo/bar/baz", test3)
+	value = CombinePathComponents("foo/", "bar/", "baz/")
+	assert.Equal("foo/bar/baz", value)
 
-	test4 := CombinePathComponents("foo/", "/bar/", "/baz")
-	assert.Equal("foo/bar/baz", test4)
+	value = CombinePathComponents("foo/", "/bar/", "/baz")
+	assert.Equal("foo/bar/baz", value)
 
-	test5 := CombinePathComponents("/foo/", "/bar/", "/baz")
-	assert.Equal("foo/bar/baz", test5)
+	value = CombinePathComponents("/foo/", "/bar/", "/baz")
+	assert.Equal("foo/bar/baz", value)
 
-	test6 := CombinePathComponents("/foo/", "/bar/", "/baz/")
-	assert.Equal("foo/bar/baz", test6)
+	value = CombinePathComponents("/foo/", "/bar/", "/baz/")
+	assert.Equal("foo/bar/baz", value)
 }

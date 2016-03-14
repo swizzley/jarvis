@@ -9,23 +9,22 @@ import (
 	"github.com/blendlabs/go-exception"
 )
 
-// Write an object to a response as json
-func WriteJson(w http.ResponseWriter, statusCode int, response interface{}) (int, error) {
+// WriteJSON writes an object to a response as json.
+func WriteJSON(w http.ResponseWriter, statusCode int, response interface{}) (int, error) {
 	bytes, err := json.Marshal(response)
 	if err == nil {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(statusCode)
-		count, write_error := w.Write(bytes)
+		count, writeError := w.Write(bytes)
 		if count == 0 {
 			return count, exception.New("WriteJson : Didnt write any bytes.")
 		}
-		return count, write_error
-	} else {
-		return 0, err
+		return count, writeError
 	}
+	return 0, err
 }
 
-// Getting the correct IP is not necessarily straightforward but this is the best attempt
+// GetIP gets the origin/client ip for a request.
 // X-FORWARDED-FOR is checked. If multiple IPs are included the first one is returned
 // X-REAL-IP is checked. If multiple IPs are included the first one is returned
 // Finally r.RemoteAddr is used
@@ -51,34 +50,36 @@ func GetIP(r *http.Request) string {
 	return ip
 }
 
+// GetParamByName returns a named parameter from either the querystring, the headers,
+// the cookies, the form or the post form of a request.
 func GetParamByName(r *http.Request, name string) string {
 	//check querystring
-	query_value := r.URL.Query().Get(name)
-	if !IsEmpty(query_value) {
-		return query_value
+	queryValue := r.URL.Query().Get(name)
+	if !IsEmpty(queryValue) {
+		return queryValue
 	}
 
 	//check headers
-	header_value := r.Header.Get(name)
-	if !IsEmpty(header_value) {
-		return header_value
+	headerValue := r.Header.Get(name)
+	if !IsEmpty(headerValue) {
+		return headerValue
 	}
 
 	//check cookies
-	cookie, cookie_err := r.Cookie(name)
-	if cookie_err == nil && !IsEmpty(cookie.Value) {
+	cookie, cookieErr := r.Cookie(name)
+	if cookieErr == nil && !IsEmpty(cookie.Value) {
 		return cookie.Value
 	}
 
-	form_value := r.Form.Get(name)
-	if !IsEmpty(form_value) {
-		return form_value
+	formValue := r.Form.Get(name)
+	if !IsEmpty(formValue) {
+		return formValue
 	}
 
-	post_form_value := r.PostFormValue(name)
-	if !IsEmpty(post_form_value) {
-		return post_form_value
+	postFormValue := r.PostFormValue(name)
+	if !IsEmpty(postFormValue) {
+		return postFormValue
 	}
 
-	return EMPTY
+	return StringEmpty
 }

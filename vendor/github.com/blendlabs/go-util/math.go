@@ -11,17 +11,16 @@ import (
 // WCNOTE: I've removed errors from the returns as that felt really stupid
 //----------------------------------------------------------------------------------------------------
 
+// PowOfInt returns the base to the power.
 func PowOfInt(base, power uint) int {
 	if base == 2 {
 		return 1 << power
-	} else {
-		return float64ToInt(math.Pow(float64(base), float64(power)))
 	}
+	return float64ToInt(math.Pow(float64(base), float64(power)))
 }
 
-// Min finds the lowest number in a slice
+// Min finds the lowest value in a slice.
 func Min(input []float64) float64 {
-	// Return an error if there are no numbers
 	if len(input) == 0 {
 		return 0
 	}
@@ -36,10 +35,8 @@ func Min(input []float64) float64 {
 	return min
 }
 
-// Min finds the lowest number in a slice
+// MinOfInt finds the lowest value in a slice.
 func MinOfInt(input []int) int {
-
-	// Return an error if there are no numbers
 	if len(input) == 0 {
 		return 0
 	}
@@ -54,9 +51,8 @@ func MinOfInt(input []int) int {
 	return min
 }
 
-// Min finds the lowest number in a slice
+// MinOfDuration finds the lowest value in a slice.
 func MinOfDuration(input []time.Duration) time.Duration {
-	// Return an error if there are no numbers
 	if len(input) == 0 {
 		return time.Duration(0)
 	}
@@ -71,7 +67,7 @@ func MinOfDuration(input []time.Duration) time.Duration {
 	return min
 }
 
-// Max finds the highest number in a slice
+// Max finds the highest value in a slice.
 func Max(input []float64) float64 {
 
 	if len(input) == 0 {
@@ -89,9 +85,8 @@ func Max(input []float64) float64 {
 	return max
 }
 
-// Max finds the highest number in a slice
+// MaxOfInt finds the highest value in a slice.
 func MaxOfInt(input []int) int {
-
 	if len(input) == 0 {
 		return 0
 	}
@@ -107,6 +102,7 @@ func MaxOfInt(input []int) int {
 	return max
 }
 
+// MaxOfDuration finds the highest value in a slice.'
 func MaxOfDuration(input []time.Duration) time.Duration {
 	if len(input) == 0 {
 		return time.Duration(0)
@@ -140,7 +136,7 @@ func Sum(input []float64) float64 {
 	return sum
 }
 
-// Sum adds all the numbers of a slice together
+// SumOfInt adds all the numbers of a slice together
 func SumOfInt(values []int) int {
 	total := 0
 	for x := 0; x < len(values); x++ {
@@ -150,6 +146,7 @@ func SumOfInt(values []int) int {
 	return total
 }
 
+// SumOfDuration adds all the values of a slice together
 func SumOfDuration(values []time.Duration) time.Duration {
 	total := time.Duration(0)
 	for x := 0; x < len(values); x++ {
@@ -170,7 +167,7 @@ func Mean(input []float64) float64 {
 	return sum / float64(len(input))
 }
 
-// Mean gets the average of a slice of numbers
+// MeanOfInt gets the average of a slice of numbers
 func MeanOfInt(input []int) float64 {
 	if len(input) == 0 {
 		return 0
@@ -180,7 +177,7 @@ func MeanOfInt(input []int) float64 {
 	return float64(sum) / float64(len(input))
 }
 
-// Mean gets the average of a slice of numbers
+// MeanOfDuration gets the average of a slice of numbers
 func MeanOfDuration(input []time.Duration) time.Duration {
 	if len(input) == 0 {
 		return 0
@@ -197,15 +194,14 @@ func Median(input []float64) float64 {
 	l := len(input)
 	if l == 0 {
 		return 0
-	} else {
-		c := copyslice(input)
-		sort.Float64s(c)
+	}
+	c := copyslice(input)
+	sort.Float64s(c)
 
-		if l%2 == 0 {
-			median = Mean(c[l/2-1 : l/2+1])
-		} else {
-			median = float64(c[l/2])
-		}
+	if l%2 == 0 {
+		median = Mean(c[l/2-1 : l/2+1])
+	} else {
+		median = float64(c[l/2])
 	}
 
 	return median

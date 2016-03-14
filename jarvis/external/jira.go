@@ -77,6 +77,6 @@ type JiraPriority struct {
 // GetJiraIssue gets the metadata for a given issueID.
 func GetJiraIssue(user, password, host, issueID string) (*JiraIssue, error) {
 	var issue JiraIssue
-	fetchErr := core.NewExternalRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPath("rest/api/2/issue/%s", issueID).FetchJsonToObject(&issue)
+	fetchErr := core.NewExternalRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPathf("rest/api/2/issue/%s", issueID).FetchJSONToObject(&issue)
 	return &issue, fetchErr
 }

@@ -9,46 +9,46 @@ import (
 	"github.com/blendlabs/go-assert"
 )
 
-type MockObject struct {
-	Id    string `json:"id"`
+type mockObject struct {
+	ID    string `json:"id"`
 	Email string `json:"email"`
 }
 
-func TestJson(t *testing.T) {
+func TestJSON(t *testing.T) {
 	assert := assert.New(t)
 
-	obj_str := "{ \"id\" : \"test\", \"email\" : \"foo@bar.com\" }"
-	obj := MockObject{}
-	DeserializeJson(&obj, obj_str)
-	assert.Equal("test", obj.Id)
+	objStr := "{ \"id\" : \"test\", \"email\" : \"foo@bar.com\" }"
+	obj := mockObject{}
+	DeserializeJSON(&obj, objStr)
+	assert.Equal("test", obj.ID)
 	assert.Equal("foo@bar.com", obj.Email)
 
-	new_obj := MockObject{}
-	DeserializeJsonFromReader(&new_obj, bytes.NewBufferString(obj_str))
-	assert.Equal("test", new_obj.Id)
-	assert.Equal("foo@bar.com", new_obj.Email)
+	newObject := mockObject{}
+	DeserializeJSONFromReader(&newObject, bytes.NewBufferString(objStr))
+	assert.Equal("test", newObject.ID)
+	assert.Equal("foo@bar.com", newObject.Email)
 
-	serialized := SerializeJson(new_obj)
+	serialized := SerializeJSON(obj)
 	assert.True(strings.Contains(serialized, "foo@bar.com"))
 
-	serialized_reader := SerializeJsonAsReader(new_obj)
-	serialized_reader_contents, reader_err := ioutil.ReadAll(serialized_reader)
-	assert.Nil(reader_err)
-	serialized_reader_str := string(serialized_reader_contents)
-	assert.True(strings.Contains(serialized_reader_str, "foo@bar.com"))
+	serializedReader := SerializeJSONAsReader(obj)
+	serializedContents, err := ioutil.ReadAll(serializedReader)
+	assert.Nil(err)
+	serializedStr := string(serializedContents)
+	assert.True(strings.Contains(serializedStr, "foo@bar.com"))
 }
 
 func TestDeserializePostBody(t *testing.T) {
 	assert := assert.New(t)
 
-	obj_str := "{ \"id\" : \"test\", \"email\" : \"foo@bar.com\" }"
-	obj_bytes := []byte(obj_str)
-	obj_reader := bytes.NewReader(obj_bytes)
-	obj_reader_closer := ioutil.NopCloser(obj_reader)
+	objStr := "{ \"id\" : \"test\", \"email\" : \"foo@bar.com\" }"
+	objBytes := []byte(objStr)
+	objReader := bytes.NewReader(objBytes)
+	objReaderCloser := ioutil.NopCloser(objReader)
 
-	mo := MockObject{}
-	deserializeErr := DeserializeJsonFromReadCloser(&mo, obj_reader_closer)
+	mo := mockObject{}
+	deserializeErr := DeserializeJSONFromReadCloser(&mo, objReaderCloser)
 	assert.Nil(deserializeErr)
 
-	assert.Equal("test", mo.Id)
+	assert.Equal("test", mo.ID)
 }

@@ -12,38 +12,56 @@ import (
 )
 
 const (
-	EMPTY        = ""
-	COLOR_RED    = "31"
-	COLOR_BLUE   = "94"
-	COLOR_GREEN  = "32"
-	COLOR_YELLOW = "33"
-	COLOR_WHITE  = "37"
-	COLOR_GRAY   = "90"
+	// StringEmpty is the empty string
+	StringEmpty = ""
+
+	// ColorRed is the posix escape code fragment for red.
+	ColorRed = "31"
+
+	// ColorBlue is the posix escape code fragment for blue.
+	ColorBlue = "94"
+
+	// ColorGreen is the posix escape code fragment for green.
+	ColorGreen = "32"
+
+	// ColorYellow is the posix escape code fragment for yellow.
+	ColorYellow = "33"
+
+	// ColorWhite is the posix escape code fragment for white.
+	ColorWhite = "37"
+
+	// ColorGray is the posix escape code fragment for white.
+	ColorGray = "90"
 )
 
 var (
-	LOWER_A = uint("a"[0])
-	LOWER_Z = uint("z"[0])
+	// LowerA is the ascii int value for 'a'
+	LowerA = uint('a')
+	// LowerZ is the ascii int value for 'z'
+	LowerZ = uint('z')
 
 	letters           = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	numbers           = []rune("0123456789")
 	lettersAndNumbers = append(letters, numbers...)
-	lowerDiff         = (LOWER_Z - LOWER_A)
+	lowerDiff         = (LowerZ - LowerA)
 )
 
+// IsEmpty returns if a string is empty.
 func IsEmpty(input string) bool {
 	return len(input) == 0
 }
 
+// EmptyCoalesce returns the first non-empty string.
 func EmptyCoalesce(inputs ...string) string {
 	for _, input := range inputs {
 		if !IsEmpty(input) {
 			return input
 		}
 	}
-	return EMPTY
+	return StringEmpty
 }
 
+// CaseInsensitiveEquals compares two strings regardless of case.
 func CaseInsensitiveEquals(a, b string) bool {
 	aLen := len(a)
 	bLen := len(b)
@@ -55,10 +73,10 @@ func CaseInsensitiveEquals(a, b string) bool {
 		charA := uint(a[x])
 		charB := uint(b[x])
 
-		if charA-LOWER_A <= lowerDiff {
+		if charA-LowerA <= lowerDiff {
 			charA = charA - 0x20
 		}
-		if charB-LOWER_A <= lowerDiff {
+		if charB-LowerA <= lowerDiff {
 			charB = charB - 0x20
 		}
 		if charA != charB {
@@ -69,18 +87,22 @@ func CaseInsensitiveEquals(a, b string) bool {
 	return true
 }
 
+// IsLetter returns if a byte is in the ascii letter range.
 func IsLetter(c byte) bool {
 	return IsUpper(c) || IsLower(c)
 }
 
+// IsUpper returns if a letter is in the ascii upper letter range.
 func IsUpper(c byte) bool {
-	return c > 65 && c < 90
+	return c > byte('A') && c < byte('Z')
 }
 
+// IsLower returns if a letter is in the ascii lower letter range.
 func IsLower(c byte) bool {
-	return c > 97 && c < 122
+	return c > byte('a') && c < byte('z')
 }
 
+// CombinePathComponents combines string components of a path.
 func CombinePathComponents(components ...string) string {
 	slash := "/"
 	fullPath := ""
@@ -103,6 +125,7 @@ func CombinePathComponents(components ...string) string {
 	return fullPath
 }
 
+// RandomString returns a new random string composed of letters from the `letters` collection.
 func RandomString(length int) string {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	b := make([]rune, length)
@@ -112,6 +135,7 @@ func RandomString(length int) string {
 	return string(b)
 }
 
+// RandomStringWithNumbers returns a random string composed of chars from the `lettersAndNumbers` collection.
 func RandomStringWithNumbers(length int) string {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	b := make([]rune, length)
@@ -121,6 +145,7 @@ func RandomStringWithNumbers(length int) string {
 	return string(b)
 }
 
+// RandomNumbers returns a random string of chars from the `numbers` collection.
 func RandomNumbers(length int) string {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	b := make([]rune, length)
@@ -130,59 +155,79 @@ func RandomNumbers(length int) string {
 	return string(b)
 }
 
+// IsValidInteger returns if a string is an integer.
 func IsValidInteger(input string) bool {
 	_, convCrr := strconv.Atoi(input)
 	return convCrr == nil
 }
 
-func RegexMatch(string_to_parse string, regexp_string string) string {
-	regexp := regexp.MustCompile(regexp_string)
-	matches := regexp.FindStringSubmatch(string_to_parse)
+// RegexMatch returns if a string matches a regexp.
+func RegexMatch(input string, exp string) string {
+	regexp := regexp.MustCompile(exp)
+	matches := regexp.FindStringSubmatch(input)
 	if len(matches) != 2 {
-		return EMPTY
+		return StringEmpty
 	}
 	return strings.TrimSpace(matches[1])
 }
 
+// ParseFloat64 parses a float64
 func ParseFloat64(input string) float64 {
-	result, conv_err := strconv.ParseFloat(input, 64)
-	if conv_err != nil {
+	result, err := strconv.ParseFloat(input, 64)
+	if err != nil {
 		return 0.0
-	} else {
-		return result
 	}
+	return result
 }
 
+// ParseFloat32 parses a float32
 func ParseFloat32(input string) float32 {
-	result, conv_err := strconv.ParseFloat(input, 32)
-	if conv_err != nil {
+	result, err := strconv.ParseFloat(input, 32)
+	if err != nil {
 		return 0.0
-	} else {
-		return float32(result)
 	}
+	return float32(result)
 }
 
+// ParseInt parses an int
 func ParseInt(input string) int {
-	result, conv_err := strconv.Atoi(input)
-	if conv_err != nil {
+	result, err := strconv.Atoi(input)
+	if err != nil {
 		return 0
-	} else {
-		return result
 	}
+	return result
 }
 
+// ParseInt64 parses an int64
+func ParseInt64(input string) int64 {
+	result, err := strconv.ParseInt(input, 10, 64)
+	if err != nil {
+		return int64(0)
+	}
+	return result
+}
+
+// IntToString turns an int into a string
 func IntToString(input int) string {
 	return strconv.Itoa(input)
 }
 
+// Int64ToString turns an int64 into a string
+func Int64ToString(input int64) string {
+	return fmt.Sprintf("%v", input)
+}
+
+// Float32ToString turns an float32 into a string
 func Float32ToString(input float32) string {
 	return fmt.Sprintf("%v", input)
 }
 
+// Float64ToString turns an float64 into a string
 func Float64ToString(input float64) string {
 	return fmt.Sprintf("%v", input)
 }
 
+// ToCSVOfInt returns a csv from a given slice of integers.
 func ToCSVOfInt(input []int) string {
 	outputStrings := []string{}
 	for _, v := range input {
@@ -191,6 +236,7 @@ func ToCSVOfInt(input []int) string {
 	return strings.Join(outputStrings, ",")
 }
 
+// StripQuotes removes quote characters from a string.
 func StripQuotes(input string) string {
 	output := []rune{}
 	for _, c := range input {
@@ -201,10 +247,13 @@ func StripQuotes(input string) string {
 	return string(output)
 }
 
+// TrimWhitespace trims spaces and tabs from a string.
 func TrimWhitespace(input string) string {
 	return strings.Trim(input, " \t")
 }
 
+// IsCamelCase returns if a string is CamelCased.
+// CamelCased in this sense is if a string has both upper and lower characters.
 func IsCamelCase(input string) bool {
 	hasLowers := false
 	hasUppers := false
@@ -221,24 +270,29 @@ func IsCamelCase(input string) bool {
 	return hasLowers && hasUppers
 }
 
+// Base64Encode returns a base64 string for a byte array.
 func Base64Encode(blob []byte) string {
 	return base64.StdEncoding.EncodeToString(blob)
 }
 
+// Base64Decode returns a byte array for a base64 encoded string.
 func Base64Decode(blob string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(blob)
 }
 
+// Color returns a posix color code escaled string.
 func Color(input string, colorCode string) string {
 	return fmt.Sprintf("\033[%s;01m%s\033[0m", colorCode, input)
 }
 
+// ColorFixedWidth returns a posix color code escaled string of a fixed width.
 func ColorFixedWidth(input string, colorCode string, width int) string {
 	fixedToken := fmt.Sprintf("%%%d.%ds", width, width)
 	fixedMessage := fmt.Sprintf(fixedToken, input)
 	return fmt.Sprintf("\033[%s;01m%s\033[0m", colorCode, fixedMessage)
 }
 
+// ColorFixedWidthLeftAligned returns a posix color code escaled string of a fixed width left aligned.
 func ColorFixedWidthLeftAligned(input string, colorCode string, width int) string {
 	fixedToken := fmt.Sprintf("%%-%ds", width)
 	fixedMessage := fmt.Sprintf(fixedToken, input)
