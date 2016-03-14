@@ -11,6 +11,13 @@ import (
 )
 
 const (
+
+	// ConfigJiraCredentials is the jira credentials.
+	ConfigJiraCredentials = "jira_credentials"
+
+	// ConfigJiraHost is the jira host.
+	ConfigJiraHost = "jira_host"
+
 	// ModuleJira is the name of the jira module.
 	ModuleJira = "jira"
 
@@ -86,7 +93,7 @@ func (j *Jira) extractJiraIssues(text string) []string {
 
 func (j *Jira) fetchJiraIssues(b core.Bot, issueIds []string) ([]*external.JiraIssue, error) {
 	issues := []*external.JiraIssue{}
-	credentials, hasCredentials := b.Configuration()["JIRA_CREDENTIALS"]
+	credentials, hasCredentials := b.Configuration()[ConfigJiraCredentials]
 
 	if !hasCredentials {
 		return issues, exception.New("Jarvis is not configured with Jira credentials.")
@@ -101,7 +108,7 @@ func (j *Jira) fetchJiraIssues(b core.Bot, issueIds []string) ([]*external.JiraI
 	jiraUser := credentialPieces[0]
 	jiraPassword := credentialPieces[1]
 
-	jiraHost, hasJiraHost := b.Configuration()["JIRA_HOST"]
+	jiraHost, hasJiraHost := b.Configuration()[ConfigJiraHost]
 	if !hasJiraHost {
 		return issues, exception.New("Jarvis is not configured with a Jira host.")
 	}

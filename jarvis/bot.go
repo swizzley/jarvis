@@ -211,12 +211,11 @@ func (b *Bot) dispatchResponse(m *slack.Message) error {
 						return action.Handler(b, m)
 					}
 				}
-			} else {
-				if b.passivesEnabled() {
-					for _, action := range b.passiveActions {
-						if core.Like(messageText, action.MessagePattern) && len(action.MessagePattern) != 0 {
-							return action.Handler(b, m)
-						}
+			}
+			if b.passivesEnabled() {
+				for _, action := range b.passiveActions {
+					if core.Like(messageText, action.MessagePattern) && len(action.MessagePattern) != 0 {
+						return action.Handler(b, m)
 					}
 				}
 			}

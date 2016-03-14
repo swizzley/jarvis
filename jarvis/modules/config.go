@@ -2,6 +2,7 @@ package modules
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-util"
@@ -58,7 +59,7 @@ func (c *Config) handleConfigSet(b core.Bot, m *slack.Message) error {
 		setting = "false"
 	}
 	b.Configuration()[key] = setting
-	return b.Sayf(m.Channel, "> %s: `%s` = %s", ActionConfigSet, key, value)
+	return b.Sayf(m.Channel, "> %s: `%s` = %s", ActionConfigSet, key, setting)
 }
 
 func (c *Config) handleConfigGet(b core.Bot, m *slack.Message) error {
@@ -77,7 +78,9 @@ func (c *Config) handleConfigGet(b core.Bot, m *slack.Message) error {
 func (c *Config) handleConfig(b core.Bot, m *slack.Message) error {
 	configText := "current config:\n"
 	for key, value := range b.Configuration() {
-		configText = configText + fmt.Sprintf("> `%s` = %s\n", key, value)
+		if strings.HasPrefix(key, "option.") {
+			configText = configText + fmt.Sprintf("> `%s` = %s\n", key, value)
+		}
 	}
 
 	return b.Say(m.Channel, configText)
