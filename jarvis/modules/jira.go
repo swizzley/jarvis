@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/blendlabs/go-exception"
+	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis/jarvis/core"
 	"github.com/wcharczuk/jarvis/jarvis/external"
@@ -76,8 +77,14 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 	message.UnfurlLinks = slack.OptionalBool(false)
 	message.UnfurlMedia = slack.OptionalBool(false)
 	for _, issue := range issues {
-		if issue != nil {
-			itemText := fmt.Sprintf("%s - %s\n%s", issue.Key, issue.Fields.Summary, issue.Self)
+		if !util.IsEmpty(issue.Key) {
+			var itemText string
+			if issue.Fields != nil {
+				itemText = fmt.Sprintf("%s - %s\n%s", issue.Key, issue.Fields.Summary, issue.Self)
+			} else {
+				itemText = fmt.Sprintf("%s\n%s", issue.Key, issue.Self)
+			}
+
 			item := slack.ChatMessageAttachment{
 				Fallback: itemText,
 				Color:    slack.OptionalString("#3572b0"),

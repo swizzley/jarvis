@@ -172,6 +172,9 @@ func (b *Bot) Init() error {
 			b.Log(resErr)
 		}
 	})
+
+	b.configuration[core.OptionPassive] = "true"
+
 	b.jobManager.LoadJob(jobs.NewClock(b))
 	b.jobManager.DisableJob("clock")
 	return nil
@@ -200,6 +203,12 @@ func (b *Bot) passivesEnabled() bool {
 }
 
 func (b *Bot) dispatchResponse(m *slack.Message) error {
+	defer func() {
+		if r := recover(); r != nil {
+			b.Sayf(m.Channel, "there was a panic handling the message:\n> %v", r)
+		}
+	}()
+
 	b.LogIncomingMessage(m)
 	user := b.FindUser(m.User)
 	if user != nil {

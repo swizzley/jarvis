@@ -1,6 +1,12 @@
 package external
 
-import "github.com/wcharczuk/jarvis/jarvis/core"
+import (
+	"encoding/json"
+	"io/ioutil"
+
+	"github.com/blendlabs/go-exception"
+	"github.com/wcharczuk/jarvis/jarvis/core"
+)
 
 // JiraIssue represents JIRA metadata.
 type JiraIssue struct {
@@ -74,9 +80,27 @@ type JiraPriority struct {
 	Name    string `json:"name"`
 }
 
+type JiraError struct {
+	ErrorMessages []string
+}
+
 // GetJiraIssue gets the metadata for a given issueID.
 func GetJiraIssue(user, password, host, issueID string) (*JiraIssue, error) {
-	var issue JiraIssue
-	fetchErr := core.NewExternalRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPathf("rest/api/2/issue/%s", issueID).FetchJSONToObject(&issue)
-	return &issue, fetchErr
+	res, err := core.NewExternalRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPathf("rest/api/2/issue/%s", issueID).FetchRawResponse()
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+
+	var je JiraError
+	err = json.Unmarshal(body, &je)
+	if err == nil && len(je.ErrorMessages) != 0 {
+		return nil, exception.Newf("Errors returned from jira: %s\n", je.ErrorMessages[0])
+	}
+
+	var ji JiraIssue
+	err = json.Unmarshal(body, &ji)
+	return &ji, err
 }
