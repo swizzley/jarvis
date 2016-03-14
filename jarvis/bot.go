@@ -204,7 +204,7 @@ func (b *Bot) loadAllRegisteredModules() {
 }
 
 func (b *Bot) loadConfiguredModules() {
-	configEntry, hasEntry := b.configuration["MODULES"]
+	configEntry, hasEntry := b.configuration[modules.ConfigModules]
 	if !hasEntry || strings.ToLower(configEntry) == "all" {
 		b.loadAllRegisteredModules()
 		return

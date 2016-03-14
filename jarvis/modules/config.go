@@ -11,6 +11,9 @@ import (
 )
 
 const (
+	// ConfigModules is the modules config entry.
+	ConfigModules = "modules"
+
 	// ModuleConfig is the name of the config module.
 	ModuleConfig = "config"
 
