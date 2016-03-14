@@ -20,8 +20,17 @@ const (
 	// ActionConfigGet is the get config action.
 	ActionConfigGet = "config.get"
 
-	//ActionConfig is the list config values action.
+	// ActionConfig is the list config values action.
 	ActionConfig = "config"
+
+	// ActionModuleLoad is the list config values action.
+	ActionModuleLoad = "module.load"
+
+	// ActionModuleUnload is the list config values action.
+	ActionModuleUnload = "module.unload"
+
+	// ActionModule is the list config values action.
+	ActionModule = "module"
 )
 
 // Config is the module that governs configuration manipulation.
@@ -38,6 +47,10 @@ func (c *Config) Actions() []core.Action {
 		core.Action{ID: ActionConfigSet, MessagePattern: "^config:(.+) (.+)", Description: "Set config values", Handler: c.handleConfigSet},
 		core.Action{ID: ActionConfigGet, MessagePattern: "^config:(.+)", Description: "Get config values", Handler: c.handleConfigGet},
 		core.Action{ID: ActionConfig, MessagePattern: "^config", Description: "Prints the current config", Handler: c.handleConfig},
+
+		core.Action{ID: ActionModuleLoad, MessagePattern: "^module:load (.+)", Description: "Loads a module", Handler: c.handleLoadModule},
+		core.Action{ID: ActionModuleUnload, MessagePattern: "^module:unload (.+)", Description: "Unloads a module", Handler: c.handleUnloadModule},
+		core.Action{ID: ActionModule, MessagePattern: "^module", Description: "Prints the current loaded modules", Handler: c.handleModule},
 	}
 }
 
@@ -84,4 +97,50 @@ func (c *Config) handleConfig(b core.Bot, m *slack.Message) error {
 	}
 
 	return b.Say(m.Channel, configText)
+}
+
+func (c *Config) handleLoadModule(b core.Bot, m *slack.Message) error {
+	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	parts := core.ExtractSubMatches(messageWithoutMentions, "^module:load (.+)")
+	if len(parts) < 2 {
+		return exception.Newf("malformed message for `%s`", ActionModuleLoad)
+	}
+
+	key := parts[1]
+	if b.LoadedModules().Contains(key) {
+		return b.Sayf(m.Channel, "Module `%s` is already loaded.", key)
+	}
+	if !b.RegisteredModules().Contains(key) {
+		return b.Sayf(m.Channel, "Module `%s` isn't registered.", key)
+	}
+
+	b.LoadModule(key)
+	return b.Sayf(m.Channel, "Loaded Module `%s`.", key)
+}
+
+func (c *Config) handleUnloadModule(b core.Bot, m *slack.Message) error {
+	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	parts := core.ExtractSubMatches(messageWithoutMentions, "^module:unload (.+)")
+	if len(parts) < 2 {
+		return exception.Newf("malformed message for `%s`", ActionModuleUnload)
+	}
+
+	key := parts[1]
+	if !b.LoadedModules().Contains(key) {
+		return b.Sayf(m.Channel, "Module `%s` isn't loaded.", key)
+	}
+	if !b.RegisteredModules().Contains(key) {
+		return b.Sayf(m.Channel, "Module `%s` isn't registered.", key)
+	}
+
+	b.UnloadModule(key)
+	return b.Sayf(m.Channel, "Unloaded Module `%s`.", key)
+}
+
+func (c *Config) handleModule(b core.Bot, m *slack.Message) error {
+	moduleText := "currently loaded modules:\n"
+	for key := range b.LoadedModules() {
+		moduleText = moduleText + fmt.Sprintf("> `%s`\n", key)
+	}
+	return b.Say(m.Channel, moduleText)
 }

@@ -171,6 +171,32 @@ func (b *Bot) LoadModule(moduleName string) {
 	}
 }
 
+// UnloadModule unloads a module and its actions.
+func (b *Bot) UnloadModule(moduleName string) {
+	if m, hasModule := b.modules[moduleName]; hasModule {
+		actions := m.Actions()
+		for _, action := range actions {
+			b.RemoveAction(action.ID)
+		}
+		b.loadedModules.Remove(moduleName)
+	}
+}
+
+// LoadedModules returns the currently loaded modules.
+func (b *Bot) LoadedModules() collections.StringSet {
+	return b.loadedModules
+}
+
+// RegisteredModules returns the registered modules.
+func (b *Bot) RegisteredModules() collections.StringSet {
+	registered := collections.StringSet{}
+	for key := range b.modules {
+		registered.Add(key)
+	}
+
+	return registered
+}
+
 func (b *Bot) loadAllRegisteredModules() {
 	for k := range b.modules {
 		b.LoadModule(k)

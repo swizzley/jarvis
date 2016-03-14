@@ -5,6 +5,7 @@ import (
 
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
+	"github.com/blendlabs/go-util/collections"
 	"github.com/wcharczuk/go-slack"
 )
 
@@ -69,6 +70,11 @@ type Bot interface {
 	State() map[string]interface{}
 	JobManager() *chronometer.JobManager
 
+	LoadModule(moduleName string)
+	UnloadModule(moduleName string)
+	RegisteredModules() collections.StringSet
+	LoadedModules() collections.StringSet
+
 	Actions() []Action
 	AddAction(action Action)
 	RemoveAction(id string)
@@ -106,6 +112,9 @@ type MockBot struct {
 	state            map[string]interface{}
 	jobManager       *chronometer.JobManager
 	actions          map[string]Action
+
+	modules       map[string]BotModule
+	loadedModules collections.StringSet
 
 	mockMessageHandler MessageHandler
 }
@@ -229,4 +238,38 @@ func (mb *MockBot) dispatchToMockHandler(m *slack.Message) {
 	if mb.mockMessageHandler != nil {
 		mb.mockMessageHandler(mb, m)
 	}
+}
+
+// RegisterModule loads a given bot module
+func (mb *MockBot) RegisterModule(m BotModule) {
+	mb.modules[m.Name()] = m
+}
+
+// LoadModule loads a registered module.
+func (mb *MockBot) LoadModule(moduleName string) {
+	if _, hasModule := mb.modules[moduleName]; hasModule {
+		mb.loadedModules.Add(moduleName)
+	}
+}
+
+// UnloadModule unloads a module and its actions.
+func (mb *MockBot) UnloadModule(moduleName string) {
+	if _, hasModule := mb.modules[moduleName]; hasModule {
+		mb.loadedModules.Remove(moduleName)
+	}
+}
+
+// LoadedModules returns the currently loaded modules.
+func (mb *MockBot) LoadedModules() collections.StringSet {
+	return mb.loadedModules
+}
+
+// RegisteredModules returns the registered modules.
+func (mb *MockBot) RegisteredModules() collections.StringSet {
+	registered := collections.StringSet{}
+	for key := range mb.modules {
+		registered.Add(key)
+	}
+
+	return registered
 }
