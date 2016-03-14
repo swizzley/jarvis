@@ -76,13 +76,15 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 	message.UnfurlLinks = slack.OptionalBool(false)
 	message.UnfurlMedia = slack.OptionalBool(false)
 	for _, issue := range issues {
-		itemText := fmt.Sprintf("%s - %s\n%s", issue.Key, issue.Fields.Summary, issue.Self)
-		item := slack.ChatMessageAttachment{
-			Fallback: itemText,
-			Color:    slack.OptionalString("#3572b0"),
-			Text:     slack.OptionalString(itemText),
+		if issue != nil {
+			itemText := fmt.Sprintf("%s - %s\n%s", issue.Key, issue.Fields.Summary, issue.Self)
+			item := slack.ChatMessageAttachment{
+				Fallback: itemText,
+				Color:    slack.OptionalString("#3572b0"),
+				Text:     slack.OptionalString(itemText),
+			}
+			message.Attachments = append(message.Attachments, item)
 		}
-		message.Attachments = append(message.Attachments, item)
 	}
 
 	_, messageErr := b.Client().ChatPostMessage(message)
