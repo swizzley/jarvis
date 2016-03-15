@@ -8,6 +8,7 @@ import (
 	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis/jarvis/core"
+	"github.com/wcharczuk/jarvis/jarvis/jobs"
 )
 
 const (
@@ -34,7 +35,11 @@ const (
 type Jobs struct{}
 
 // Init does nothing right now.
-func (j *Jobs) Init(b core.Bot) error { return nil }
+func (j *Jobs) Init(b core.Bot) error {
+	b.JobManager().LoadJob(jobs.NewClock(b))
+	b.JobManager().DisableJob("clock")
+	return nil
+}
 
 // Name returns the name of the module
 func (j *Jobs) Name() string {

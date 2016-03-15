@@ -1,1 +1,1 @@
-web: jarvis
+web: go run server/main.go

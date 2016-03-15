@@ -13,7 +13,6 @@ import (
 	"github.com/blendlabs/go-util/collections"
 	"github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis/jarvis/core"
-	"github.com/wcharczuk/jarvis/jarvis/jobs"
 	"github.com/wcharczuk/jarvis/jarvis/modules"
 )
 
@@ -45,7 +44,7 @@ func NewBot(token string) *Bot {
 		token:          token,
 		jobManager:     chronometer.NewJobManager(),
 		state:          map[string]interface{}{},
-		configuration:  map[string]string{modules.ConfigOptionPassive: "false"},
+		configuration:  map[string]string{},
 		actionLookup:   map[string]core.Action{},
 		modules:        map[string]core.BotModule{},
 		loadedModules:  collections.StringSet{},
@@ -227,8 +226,11 @@ func (b *Bot) RegisteredModules() collections.StringSet {
 }
 
 func (b *Bot) loadAllRegisteredModules() {
-	for k := range b.modules {
-		b.LoadModule(k)
+	for name := range b.modules {
+		loadErr := b.LoadModule(name)
+		if loadErr != nil {
+			b.Logf("Error loading module `%s`: %v", name, loadErr)
+		}
 	}
 }
 
@@ -242,7 +244,10 @@ func (b *Bot) loadConfiguredModules() {
 	moduleNames := strings.Split(configEntry, ",")
 	for _, name := range moduleNames {
 		nameLower := strings.ToLower(name)
-		b.LoadModule(nameLower)
+		loadErr := b.LoadModule(nameLower)
+		if loadErr != nil {
+			b.Logf("Error loading module `%s`: %v", name, loadErr)
+		}
 	}
 }
 
@@ -257,7 +262,7 @@ func (b *Bot) Init() error {
 	b.RegisterModule(&modules.Util{})
 	b.RegisterModule(&modules.Core{})
 
-	b.loadConfiguredModules() //reads the "MODULES" configuration entry
+	b.loadConfiguredModules()
 
 	client := slack.NewClient(b.token)
 	b.client = client
@@ -271,13 +276,6 @@ func (b *Bot) Init() error {
 			b.Log(resErr)
 		}
 	})
-
-	b.configuration[modules.ConfigOptionPassive] = "true"
-
-	if b.loadedModules.Contains(modules.ModuleJobs) {
-		b.jobManager.LoadJob(jobs.NewClock(b))
-		b.jobManager.DisableJob("clock")
-	}
 
 	return nil
 }
