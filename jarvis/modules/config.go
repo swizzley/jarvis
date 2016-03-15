@@ -11,8 +11,14 @@ import (
 )
 
 const (
+	// EnvironmentModules is the modules environment variable entry.
+	EnvironmentModules = "MODULES"
+
 	// ConfigModules is the modules config entry.
 	ConfigModules = "modules"
+
+	// ConfigOptionPassive is a user configurable option to enable or disable passive command processing.
+	ConfigOptionPassive = "option.passive"
 
 	// ModuleConfig is the name of the config module.
 	ModuleConfig = "config"
@@ -38,6 +44,9 @@ const (
 
 // Config is the module that governs configuration manipulation.
 type Config struct{}
+
+// Init for this module does nothing.
+func (c *Config) Init(b core.Bot) error { return nil } // noop
 
 // Name returns the name for the module.
 func (c *Config) Name() string {

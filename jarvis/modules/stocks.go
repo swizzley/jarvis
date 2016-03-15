@@ -20,8 +20,10 @@ const (
 )
 
 // Stocks is the module that does stocks things.
-type Stocks struct {
-}
+type Stocks struct{}
+
+// Init does nothing right now.
+func (s *Stocks) Init(b core.Bot) error { return nil }
 
 // Name returns the name of the stocks module.
 func (s *Stocks) Name() string {

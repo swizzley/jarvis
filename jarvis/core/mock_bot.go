@@ -1,5 +1,6 @@
 package core
 
+// NewMockBot returns a new Bot instance.
 import (
 	"fmt"
 
@@ -9,93 +10,9 @@ import (
 	"github.com/wcharczuk/go-slack"
 )
 
-const (
-	// OptionPassive is the config entry that governs whether or not to process passive responses.
-	OptionPassive = "option.passive"
-
-	// PriorityHigh is for actions that have to be processed / checked first.
-	PriorityHigh = 500
-
-	// PriorityNormal is for typical actions (this is the default).
-	PriorityNormal = 100
-
-	// PriorityCatchAll is for actions that should be processed / checked last.
-	// CatchAll actions typically have this priority.
-	PriorityCatchAll = 1
-)
-
-// Action represents an action that can be handled by Jarvis for a given message pattern.
-type Action struct {
-	ID             string
-	MessagePattern string
-	Description    string
-	Passive        bool
-	Handler        MessageHandler
-	Priority       int
-}
-
-// ActionsByPriority sorts an action slice by the priority desc.
-type ActionsByPriority []Action
-
-// Len returns the slice length.
-func (a ActionsByPriority) Len() int {
-	return len(a)
-}
-
-// Swap swaps two indexes.
-func (a ActionsByPriority) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
-}
-
-func (a ActionsByPriority) Less(i, j int) bool {
-	return a[i].Priority > a[j].Priority
-}
-
-// MessageHandler is a function that takes a slack message and acts on it.
-type MessageHandler func(b Bot, m *slack.Message) error
-
-// BotModule is a suite of actions (either Mention driven or Passive).
-type BotModule interface {
-	Name() string
-	Actions() []Action
-}
-
-// Bot interface is the interop interface used between modules.
-type Bot interface {
-	ID() string
-	Token() string
-	OrganizationName() string
-
-	Configuration() map[string]string
-	State() map[string]interface{}
-	JobManager() *chronometer.JobManager
-
-	LoadModule(moduleName string)
-	UnloadModule(moduleName string)
-	RegisteredModules() collections.StringSet
-	LoadedModules() collections.StringSet
-
-	Actions() []Action
-	AddAction(action Action)
-	RemoveAction(id string)
-	TriggerAction(id string, m *slack.Message) error
-
-	Client() *slack.Client
-	ActiveChannels() []string
-
-	FindUser(userID string) *slack.User
-	FindChannel(channelID string) *slack.Channel
-
-	Say(destinationID string, components ...interface{}) error
-	Sayf(destinationID string, format string, components ...interface{}) error
-
-	Log(components ...interface{})
-	Logf(format string, components ...interface{})
-}
-
-// NewMockBot returns a new Bot instance.
+// NewMockBot creates a new mock bot.
 func NewMockBot(token string) *MockBot {
-	return &MockBot{id: slack.UUIDv4().ToShortString(), organizationName: "Test Organization", token: token, jobManager: chronometer.NewJobManager(), state: map[string]interface{}{}, configuration: map[string]string{OptionPassive: "false"}, actions: map[string]Action{}}
+	return &MockBot{id: slack.UUIDv4().ToShortString(), organizationName: "Test Organization", token: token, jobManager: chronometer.NewJobManager(), state: map[string]interface{}{}, configuration: map[string]string{"option.passive": "false"}, actions: map[string]Action{}}
 }
 
 // MockMessage returns a mock message.
@@ -246,10 +163,11 @@ func (mb *MockBot) RegisterModule(m BotModule) {
 }
 
 // LoadModule loads a registered module.
-func (mb *MockBot) LoadModule(moduleName string) {
+func (mb *MockBot) LoadModule(moduleName string) error {
 	if _, hasModule := mb.modules[moduleName]; hasModule {
 		mb.loadedModules.Add(moduleName)
 	}
+	return nil
 }
 
 // UnloadModule unloads a module and its actions.

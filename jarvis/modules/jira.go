@@ -2,6 +2,7 @@ package modules
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/blendlabs/go-exception"
@@ -12,11 +13,16 @@ import (
 )
 
 const (
+	// EnvironmentJiraCredentials is the environment variable name for jira credentials.
+	EnvironmentJiraCredentials = "JIRA_CREDENTIALS"
 
-	// ConfigJiraCredentials is the jira credentials.
+	// EnvironmentJiraHost is the environment variable name for jira credentials.
+	EnvironmentJiraHost = "JIRA_HOST"
+
+	// ConfigJiraCredentials is the jira credentials bot config entry.
 	ConfigJiraCredentials = "jira_credentials"
 
-	// ConfigJiraHost is the jira host.
+	// ConfigJiraHost is the jira host bot config entry.
 	ConfigJiraHost = "jira_host"
 
 	// ModuleJira is the name of the jira module.
@@ -37,6 +43,29 @@ const (
 
 // Jira is the jira module.
 type Jira struct{}
+
+// Init for this module does nothing.
+func (j *Jira) Init(b core.Bot) error {
+	if _, hasEntry := b.Configuration()[ConfigJiraCredentials]; !hasEntry {
+		envCredentials := os.Getenv(EnvironmentJiraCredentials)
+		if len(envCredentials) != 0 {
+			b.Configuration()[ConfigJiraCredentials] = envCredentials
+		} else {
+			return exception.Newf("No `%s` provided, module `%s` cannot load.", EnvironmentJiraCredentials, ModuleJira)
+		}
+	}
+
+	if _, hasEntry := b.Configuration()[ConfigJiraHost]; !hasEntry {
+		envHost := os.Getenv(EnvironmentJiraHost)
+		if len(envHost) != 0 {
+			b.Configuration()[ConfigJiraHost] = envHost
+		} else {
+			return exception.Newf("No `%s` provided, module `%s` cannot load.", EnvironmentJiraHost, ModuleJira)
+		}
+	}
+
+	return nil
+}
 
 // Name returns the name of the module.
 func (j *Jira) Name() string {

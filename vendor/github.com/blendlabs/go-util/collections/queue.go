@@ -6,16 +6,25 @@ type queueNode struct {
 	Value    interface{}
 }
 
+// NewQueue returns a new Queue instance.
+func NewQueue() *Queue {
+	return &Queue{}
+}
+
+// Queue is an implementation of a FIFO buffer.
+// Remarks; it is not threadsafe. It is constant time in all ops.
 type Queue struct {
 	head   *queueNode
 	tail   *queueNode
 	length int
 }
 
+// Length returns the length of the queue in constant time.
 func (q *Queue) Length() int {
 	return q.length
 }
 
+// Push adds a new value to the queue.
 func (q *Queue) Push(value interface{}) {
 	node := queueNode{Value: value}
 
@@ -31,6 +40,7 @@ func (q *Queue) Push(value interface{}) {
 	q.length = q.length + 1
 }
 
+// Dequeue removes an item from the front of the queue and returns it.
 func (q *Queue) Dequeue() interface{} {
 	if q.head == nil {
 		return nil
@@ -52,6 +62,7 @@ func (q *Queue) Dequeue() interface{} {
 	return headValue
 }
 
+// Peek returns the first element of the queue but does not remove it.
 func (q *Queue) Peek() interface{} {
 	if q.head == nil {
 		return nil
@@ -59,6 +70,7 @@ func (q *Queue) Peek() interface{} {
 	return q.head.Value
 }
 
+// PeekBack returns the last element of the queue.
 func (q *Queue) PeekBack() interface{} {
 	if q.tail == nil {
 		return nil
@@ -66,6 +78,7 @@ func (q *Queue) PeekBack() interface{} {
 	return q.tail.Value
 }
 
+// ToArray returns the full contents of the queue as a slice.
 func (q *Queue) ToArray() []interface{} {
 	if q.head == nil {
 		return []interface{}{}

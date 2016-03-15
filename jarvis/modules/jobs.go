@@ -33,6 +33,9 @@ const (
 // Jobs is the module that governs jobs within a bot.
 type Jobs struct{}
 
+// Init does nothing right now.
+func (j *Jobs) Init(b core.Bot) error { return nil }
+
 // Name returns the name of the module
 func (j *Jobs) Name() string {
 	return ModuleJobs

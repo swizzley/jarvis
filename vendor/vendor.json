@@ -14,8 +14,8 @@
 		},
 		{
 			"path": "github.com/blendlabs/go-exception",
-			"revision": "4c5fb3b838fd613ec4fc4a78d60b972ff7a88ada",
-			"revisionTime": "2015-12-07T18:39:50-08:00"
+			"revision": "02cdddefb066ba454eea125a322e6c52a37366a6",
+			"revisionTime": "2016-03-14T17:13:47-07:00"
 		},
 		{
 			"path": "github.com/blendlabs/go-request",
@@ -29,8 +29,8 @@
 		},
 		{
 			"path": "github.com/blendlabs/go-util/collections",
-			"revision": "b7ac099eefa961b0bf5174aa7c245af6a1811d34",
-			"revisionTime": "2016-02-25T21:03:07-08:00"
+			"revision": "d41eef312a09c0bccb52f06004cbe2578daa221f",
+			"revisionTime": "2016-03-08T14:03:01-08:00"
 		},
 		{
 			"path": "github.com/dlintw/goconf",

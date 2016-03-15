@@ -2,6 +2,7 @@ package jarvis
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -16,13 +17,35 @@ import (
 	"github.com/wcharczuk/jarvis/jarvis/modules"
 )
 
+const (
+	// EnvironmentSlackAPIToken is the slack api token environment variable.
+	EnvironmentSlackAPIToken = "SLACK_API_TOKEN"
+)
+
+// NewBotFromEnvironment creates a new bot from environment variables.
+func NewBotFromEnvironment() *Bot {
+	envToken := os.Getenv(EnvironmentSlackAPIToken)
+	if len(envToken) == 0 {
+		return nil
+	}
+	b := NewBot(envToken)
+
+	envModules := os.Getenv(modules.EnvironmentModules)
+	if len(envModules) != 0 {
+		b.Configuration()[modules.ConfigModules] = envModules
+	} else {
+		b.Configuration()[modules.ConfigModules] = "all"
+	}
+	return b
+}
+
 // NewBot returns a new Bot instance.
 func NewBot(token string) *Bot {
 	return &Bot{
 		token:          token,
 		jobManager:     chronometer.NewJobManager(),
 		state:          map[string]interface{}{},
-		configuration:  map[string]string{core.OptionPassive: "false"},
+		configuration:  map[string]string{modules.ConfigOptionPassive: "false"},
 		actionLookup:   map[string]core.Action{},
 		modules:        map[string]core.BotModule{},
 		loadedModules:  collections.StringSet{},
@@ -161,14 +184,20 @@ func (b *Bot) RegisterModule(m core.BotModule) {
 }
 
 // LoadModule loads a registered module.
-func (b *Bot) LoadModule(moduleName string) {
+func (b *Bot) LoadModule(moduleName string) error {
 	if m, hasModule := b.modules[moduleName]; hasModule {
+		initErr := m.Init(b)
+		if initErr != nil {
+			return initErr
+		}
+
 		actions := m.Actions()
 		for _, action := range actions {
 			b.AddAction(action)
 		}
 		b.loadedModules.Add(moduleName)
 	}
+	return nil
 }
 
 // UnloadModule unloads a module and its actions.
@@ -243,7 +272,7 @@ func (b *Bot) Init() error {
 		}
 	})
 
-	b.configuration[core.OptionPassive] = "true"
+	b.configuration[modules.ConfigOptionPassive] = "true"
 
 	if b.loadedModules.Contains(modules.ModuleJobs) {
 		b.jobManager.LoadJob(jobs.NewClock(b))
@@ -269,7 +298,7 @@ func (b *Bot) Start() error {
 }
 
 func (b *Bot) passivesEnabled() bool {
-	if value, hasKey := b.configuration[core.OptionPassive]; hasKey {
+	if value, hasKey := b.configuration[modules.ConfigOptionPassive]; hasKey {
 		return strings.ToLower(value) == "true"
 	}
 	return false

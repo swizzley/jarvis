@@ -21,5 +21,5 @@ func TestStringArray(t *testing.T) {
 	foo := sa.GetByLower("foo")
 	a.Equal("Foo", foo)
 	notFoo := sa.GetByLower("will")
-	a.Equal(util.EMPTY, notFoo)
+	a.Equal(util.StringEmpty, notFoo)
 }

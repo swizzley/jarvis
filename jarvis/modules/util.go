@@ -15,12 +15,18 @@ const (
 	ActionUtilUserID = "util.user_id"
 )
 
+// Util is a set of slack specific utility commands.
 type Util struct{}
 
+// Init does nothing right now.
+func (u *Util) Init(b core.Bot) error { return nil }
+
+// Name is the name of the module.
 func (u Util) Name() string {
 	return ModuleUtil
 }
 
+// Actions are the actions for the module.
 func (u Util) Actions() []core.Action {
 	return []core.Action{
 		core.Action{ID: ActionUtilUserID, MessagePattern: "^user", Description: "Get the Slack user_id for a given user.", Handler: u.handleUserID},

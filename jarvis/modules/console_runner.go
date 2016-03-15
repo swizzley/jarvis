@@ -28,6 +28,9 @@ const (
 // ConsoleRunner is the google image search for ConsoleRunner module
 type ConsoleRunner struct{}
 
+// Init for this module does nothing.
+func (cr *ConsoleRunner) Init(b core.Bot) error { return nil } // noop
+
 // Name returns the module name.
 func (cr *ConsoleRunner) Name() string {
 	return ModuleConsoleRunner

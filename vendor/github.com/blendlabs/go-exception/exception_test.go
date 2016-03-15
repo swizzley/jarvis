@@ -103,3 +103,15 @@ func TestWrapMany(t *testing.T) {
 	a.NotNil(combined.InnerException())
 	a.NotNil(combined.InnerException().InnerException())
 }
+
+func TestWrapManyNil(t *testing.T) {
+	a := assert.New(t)
+
+	var ex1 error
+	var ex2 error
+	var ex3 error
+
+	err := WrapMany(ex1, ex2, ex3)
+	a.Nil(err)
+	a.Equal(nil, err) //UGH.
+}

@@ -4,33 +4,36 @@ import (
 	"time"
 )
 
+// NewRateLimiter returns a new RateLimiter instance.
 func NewRateLimiter(numberOfActions int, quantum time.Duration) *RateLimiter {
-	rl := RateLimiter{}
-	rl.NumberOfActions = numberOfActions
-	rl.Quantum = quantum
-	rl.Limits = map[string]*Queue{}
-	return &rl
+	return &RateLimiter{
+		NumberOfActions: numberOfActions,
+		Quantum:         quantum,
+		Limits:          map[string]*Queue{},
+	}
 }
 
+// RateLimiter is a simple implementation of a rate checker.
 type RateLimiter struct {
 	NumberOfActions int
 	Quantum         time.Duration
 	Limits          map[string]*Queue
 }
 
+// Check returns true if it has been called NumberOfActions times or more in Quantum or smaller duration.
 func (rl *RateLimiter) Check(id string) bool {
-	queue, has_queue := rl.Limits[id]
-	if !has_queue {
+	queue, hasQueue := rl.Limits[id]
+	if !hasQueue {
 		queue = &Queue{}
 		rl.Limits[id] = queue
 	}
 
-	current_time := time.Now().UTC()
-	queue.Push(current_time)
+	currentTime := time.Now().UTC()
+	queue.Push(currentTime)
 	if queue.Length() < rl.NumberOfActions {
 		return false
 	}
 
-	oldest, _ := queue.Dequeue().(time.Time)
-	return current_time.Sub(oldest) < rl.Quantum
+	oldest := queue.Dequeue().(time.Time)
+	return currentTime.Sub(oldest) < rl.Quantum
 }

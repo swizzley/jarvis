@@ -42,6 +42,9 @@ const (
 // Core is the module that handles basic methods
 type Core struct{}
 
+// Init for this module does nothing.
+func (c *Core) Init(b core.Bot) error { return nil } // noop
+
 // Name returns the name of the module
 func (c *Core) Name() string {
 	return ModuleCore

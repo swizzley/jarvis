@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -32,31 +33,23 @@ func port() string {
 }
 
 func main() {
-	args := os.Args
-	if len(args) == 1 {
-		bots := initializeBotsFromConfig("jarvis.conf")
-		startStatusServer(bots)
+	var bots []*jarvis.Bot
+	var configFile = flag.String("config", "", "config file to read from")
+	if configFile != nil && len(*configFile) != 0 {
+		bots = initializeBotsFromConfig(*configFile)
 	} else {
-		command := args[1]
-		switch strings.ToLower(command) {
-		case "key":
-			fmt.Printf("JARVIS_KEY=%s\n", util.Base64Encode(core.CreateKey(32)))
-			os.Exit(0)
-		case "encrypt":
-			if len(args) < 3 {
-				fmt.Println("need to provide a value to `encrypt`")
-				os.Exit(1)
-			}
-			value := args[2]
-			encryptedValue, encryptedValueErr := encryptValue(value)
-			if encryptedValueErr != nil {
-				fmt.Printf("error encrypting: %v\n", encryptedValueErr)
-				os.Exit(1)
-			}
-			fmt.Printf("%s\n", encryptedValue)
-			os.Exit(0)
-		}
+		bot := intializeBotFromEnvironment()
+		bots = []*jarvis.Bot{bot}
 	}
+
+	startStatusServer(bots)
+}
+
+func intializeBotFromEnvironment() *jarvis.Bot {
+	b := jarvis.NewBotFromEnvironment()
+	b.Init()
+	b.Start()
+	return b
 }
 
 func initializeBotsFromConfig(configPath string) []*jarvis.Bot {
@@ -82,9 +75,9 @@ func initializeBotsFromConfig(configPath string) []*jarvis.Bot {
 				if value, valueErr := config.GetString(section, option); valueErr == nil {
 					decryptedValue, decryptErr := decryptValue(value)
 					if decryptErr == nil {
-						j.Configuration()[option] = decryptedValue
+						j.Configuration()[strings.ToUpper(option)] = decryptedValue
 					} else {
-						j.Configuration()[option] = value
+						j.Configuration()[strings.ToUpper(option)] = value
 					}
 				}
 			}
