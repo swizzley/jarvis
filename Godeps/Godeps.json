@@ -1,5 +1,38 @@
 {
 	"ImportPath": "github.com/wcharczuk/jarvis",
 	"GoVersion": "go1.6",
-	"Deps": []
+	"Deps": [
+		{
+			"ImportPath": "github.com/blendlabs/go-chronometer",
+			"Rev": "4dde33d87809020866456665a0b0367d0dcf8d85"
+		},
+		{
+			"ImportPath": "github.com/blendlabs/go-exception",
+			"Rev": "02cdddefb066ba454eea125a322e6c52a37366a6"
+		},
+		{
+			"ImportPath": "github.com/blendlabs/go-request",
+			"Rev": "a37b726082682c1f35ae5292b2f8a69ef5f62eae"
+		},
+		{
+			"ImportPath": "github.com/blendlabs/go-util",
+			"Rev": "d41eef312a09c0bccb52f06004cbe2578daa221f"
+		},
+		{
+			"ImportPath": "github.com/blendlabs/go-util/collections",
+			"Rev": "d41eef312a09c0bccb52f06004cbe2578daa221f"
+		},
+		{
+			"ImportPath": "github.com/dlintw/goconf",
+			"Rev": "dcc070983490608a14480e3bf943bad464785df5"
+		},
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Rev": "4935ba31a2adbfcd9e08b86d2657659afbf1af9a"
+		},
+		{
+			"ImportPath": "github.com/wcharczuk/go-slack",
+			"Rev": "c30b8ba67a9cb6d04c9afc0b7996487950bef88e"
+		}
+	]
 }
