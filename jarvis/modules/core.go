@@ -67,13 +67,21 @@ func (c *Core) handleHelp(b core.Bot, m *slack.Message) error {
 	responseText := "Here are the commands that are currently configured:"
 	for _, actionHandler := range b.Actions() {
 		if !actionHandler.Passive {
-			responseText = responseText + fmt.Sprintf("\n>`%s` - %s", actionHandler.MessagePattern, actionHandler.Description)
+			if len(actionHandler.MessagePattern) != 0 {
+				responseText = responseText + fmt.Sprintf("\n>`%s` - %s", actionHandler.MessagePattern, actionHandler.Description)
+			} else {
+				responseText = responseText + fmt.Sprintf("\n>`*` - %s", actionHandler.Description)
+			}
 		}
 	}
 	responseText = responseText + "\nWith the following passive commands:"
 	for _, actionHandler := range b.Actions() {
 		if actionHandler.Passive {
-			responseText = responseText + fmt.Sprintf("\n>`%s` - %s", actionHandler.MessagePattern, actionHandler.Description)
+			if len(actionHandler.MessagePattern) != 0 {
+				responseText = responseText + fmt.Sprintf("\n>`%s` - %s", actionHandler.MessagePattern, actionHandler.Description)
+			} else {
+				responseText = responseText + fmt.Sprintf("\n>`*` - %s", actionHandler.Description)
+			}
 		}
 	}
 	return b.Say(m.Channel, responseText)
