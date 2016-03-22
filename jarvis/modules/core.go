@@ -162,11 +162,14 @@ func (c *Core) handleMentionCatchAll(b core.Bot, m *slack.Message) error {
 
 func (c *Core) handlePassiveCatchAll(b core.Bot, m *slack.Message) error {
 	message := util.TrimWhitespace(core.LessMentions(m.Text))
-	if core.IsAngry(message) {
-		user := b.FindUser(m.User)
-		response := []string{"slow down %s", "maybe calm down %s", "%s you should really relax", "chill %s", "it's ok %s, let it out"}
-		return b.Sayf(m.Channel, core.Random(response), strings.ToLower(user.Profile.FirstName))
+	if optionValue, hasOption := b.Configuration()[ConfigOptionPassiveCatchAll]; hasOption && optionValue == "true" {
+		if core.IsAngry(message) {
+			user := b.FindUser(m.User)
+			response := []string{"slow down %s", "maybe calm down %s", "%s you should really relax", "chill %s", "it's ok %s, let it out"}
+			return b.Sayf(m.Channel, core.Random(response), strings.ToLower(user.Profile.FirstName))
+		}
 	}
+
 	return nil
 }
 

@@ -20,6 +20,9 @@ const (
 	// ConfigOptionPassive is a user configurable option to enable or disable passive command processing.
 	ConfigOptionPassive = "option.passive"
 
+	// ConfigOptionPassiveCatchAll is a user configurable option to enable or disable passive command processing.
+	ConfigOptionPassiveCatchAll = "option.passive.catch_all"
+
 	// ModuleConfig is the name of the config module.
 	ModuleConfig = "config"
 
