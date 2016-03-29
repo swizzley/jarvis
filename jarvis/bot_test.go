@@ -44,7 +44,8 @@ func TestAddActionPriorityCoalesce(t *testing.T) {
 func TestLoadModule(t *testing.T) {
 	assert := assert.New(t)
 	b := NewBot(slack.UUIDv4().ToShortString())
-	b.LoadModule(&modules.Core{})
+	b.RegisterModule(&modules.Core{})
+	b.LoadModule(modules.ModuleCore)
 
 	assert.NotEmpty(b.Actions())
 	assert.NotEmpty(b.mentionActions)
