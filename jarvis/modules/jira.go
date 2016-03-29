@@ -103,10 +103,7 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 	leadText := fmt.Sprintf("*%s* has mentioned the following jira issues (%d): ", user.Profile.FirstName, len(issues))
 	message := slack.NewChatMessage(m.Channel, leadText)
 	message.AsUser = slack.OptionalBool(true)
-	message.Parse = slack.OptionalString("full")
-	message.UnfurlLinks = slack.OptionalBool(true)
-	message.UnfurlMedia = slack.OptionalBool(true)
-	message.LinkNames = slack.OptionalBool(true)
+	message.UnfurlLinks = slack.OptionalBool(false)
 	for _, issue := range issues {
 		if !util.IsEmpty(issue.Key) {
 			var itemText string
@@ -122,13 +119,12 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 					assignee,
 				)
 			} else {
-				itemText = fmt.Sprintf("%s\n%s", issue.Key, issue.Self)
+				itemText = fmt.Sprintf("%s\n%s", issue.Key, fmt.Sprintf("https://%s/browse/%s", b.Configuration()[ConfigJiraHost], issue.Key))
 			}
 
 			item := slack.ChatMessageAttachment{
-				Fallback: itemText,
-				Color:    slack.OptionalString("#3572b0"),
-				Text:     slack.OptionalString(itemText),
+				Color: slack.OptionalString("#3572b0"),
+				Text:  slack.OptionalString(itemText),
 			}
 			message.Attachments = append(message.Attachments, item)
 		}

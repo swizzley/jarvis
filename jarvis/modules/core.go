@@ -98,7 +98,7 @@ func (c *Core) handleTime(b core.Bot, m *slack.Message) error {
 	message.UnfurlMedia = slack.OptionalBool(false)
 	message.Attachments = []slack.ChatMessageAttachment{
 		slack.ChatMessageAttachment{
-			Fallback: fmt.Sprintf("The time is now:\n>%s", timeText),
+			Fallback: slack.OptionalString(fmt.Sprintf("The time is now:\n>%s", timeText)),
 			Color:    slack.OptionalString("#4099FF"),
 			Pretext:  slack.OptionalString("The time is now:"),
 			Text:     slack.OptionalString(timeText),
