@@ -114,7 +114,7 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 					assignee = issue.Fields.Assignee.DisplayName
 				}
 				itemText = fmt.Sprintf("<%s|%s>%s\nAssigned To: %s",
-					fmt.Sprintf("https://%s/browse/%s", b.Configuration()["JIRA_HOST"], issue.Key),
+					fmt.Sprintf("https://%s/browse/%s", b.Configuration()[ConfigJiraHost], issue.Key),
 					issue.Key,
 					issue.Fields.Summary,
 					assignee,
