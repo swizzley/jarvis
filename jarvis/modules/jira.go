@@ -106,6 +106,7 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 	message.Parse = slack.OptionalString("full")
 	message.UnfurlLinks = slack.OptionalBool(true)
 	message.UnfurlMedia = slack.OptionalBool(true)
+	message.LinkNames = slack.OptionalBool(true)
 	for _, issue := range issues {
 		if !util.IsEmpty(issue.Key) {
 			var itemText string
@@ -114,7 +115,7 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 				if issue.Fields.Assignee != nil {
 					assignee = issue.Fields.Assignee.DisplayName
 				}
-				itemText = fmt.Sprintf("<%s|%s>%s\nAssigned To: %s",
+				itemText = fmt.Sprintf("<%s|%s> %s\nAssigned To: %s",
 					fmt.Sprintf("https://%s/browse/%s", b.Configuration()[ConfigJiraHost], issue.Key),
 					issue.Key,
 					issue.Fields.Summary,
