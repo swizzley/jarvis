@@ -103,7 +103,7 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 	leadText := fmt.Sprintf("*%s* has mentioned the following jira issues (%d): ", user.Profile.FirstName, len(issues))
 	message := slack.NewChatMessage(m.Channel, leadText)
 	message.AsUser = slack.OptionalBool(true)
-	message.UnfurlLinks = slack.OptionalBool(false)
+	message.UnfurlLinks = slack.OptionalBool(true)
 	message.UnfurlMedia = slack.OptionalBool(false)
 	for _, issue := range issues {
 		if !util.IsEmpty(issue.Key) {
