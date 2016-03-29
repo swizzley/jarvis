@@ -104,7 +104,7 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 	message := slack.NewChatMessage(m.Channel, leadText)
 	message.AsUser = slack.OptionalBool(true)
 	message.UnfurlLinks = slack.OptionalBool(true)
-	message.UnfurlMedia = slack.OptionalBool(false)
+	message.UnfurlMedia = slack.OptionalBool(true)
 	for _, issue := range issues {
 		if !util.IsEmpty(issue.Key) {
 			var itemText string
