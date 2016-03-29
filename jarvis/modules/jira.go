@@ -109,7 +109,12 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 		if !util.IsEmpty(issue.Key) {
 			var itemText string
 			if issue.Fields != nil {
-				itemText = fmt.Sprintf("%s - %s\n%s", issue.Key, issue.Fields.Summary, issue.Self)
+				itemText = fmt.Sprintf("<%s|%s>%s\nAssigned To: %s",
+					fmt.Sprintf("https://%s/browse/%s", b.Configuration()["JIRA_HOST"], issue.Key),
+					issue.Key,
+					issue.Fields.Summary,
+					issue.Fields.Assignee.DisplayName,
+				)
 			} else {
 				itemText = fmt.Sprintf("%s\n%s", issue.Key, issue.Self)
 			}
