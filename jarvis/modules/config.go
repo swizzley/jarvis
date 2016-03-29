@@ -49,7 +49,10 @@ const (
 type Config struct{}
 
 // Init for this module does nothing.
-func (c *Config) Init(b core.Bot) error { return nil } // noop
+func (c *Config) Init(b core.Bot) error {
+	b.Configuration()[ConfigOptionPassive] = "true"
+	return nil
+}
 
 // Name returns the name for the module.
 func (c *Config) Name() string {
