@@ -90,9 +90,9 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 		return nil
 	}
 
-	issues, issuesErr := j.fetchJiraIssues(b, issueIds)
-	if issuesErr != nil {
-		return issuesErr
+	issues, err := j.fetchJiraIssues(b, issueIds)
+	if err != nil {
+		return err
 	}
 	if len(issues) == 0 {
 		return nil
@@ -129,11 +129,11 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 		}
 	}
 
-	_, messageErr := b.Client().ChatPostMessage(message)
-	if messageErr != nil {
-		fmt.Printf("issue posting message: %v\n", messageErr)
+	_, err = b.Client().ChatPostMessage(message)
+	if err != nil {
+		fmt.Printf("issue posting message: %v\n", err)
 	}
-	return messageErr
+	return err
 }
 
 func (j *Jira) extractJiraIssues(text string) []string {
@@ -167,12 +167,14 @@ func (j *Jira) fetchJiraIssues(b core.Bot, issueIds []string) ([]*external.JiraI
 		return issues, exception.New("Jarvis is not configured with a Jira host.")
 	}
 
+	var err error
+	var issue *external.JiraIssue
 	for _, issueID := range issueIds {
-		issue, issueErr := external.GetJiraIssue(jiraUser, jiraPassword, jiraHost, issueID)
-		if issueErr == nil {
+		issue, err = external.GetJiraIssue(jiraUser, jiraPassword, jiraHost, issueID)
+		if err == nil {
 			issues = append(issues, issue)
 		} else {
-			return issues, issueErr
+			return issues, err
 		}
 	}
 

@@ -184,13 +184,15 @@ func (b *Bot) RegisterModule(m core.BotModule) {
 
 // LoadModule loads a registered module.
 func (b *Bot) LoadModule(moduleName string) error {
+	var err error
+	var actions []core.Action
 	if m, hasModule := b.modules[moduleName]; hasModule {
-		initErr := m.Init(b)
-		if initErr != nil {
-			return initErr
+		err = m.Init(b)
+		if err != nil {
+			return err
 		}
 
-		actions := m.Actions()
+		actions = m.Actions()
 		for _, action := range actions {
 			b.AddAction(action)
 		}

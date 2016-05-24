@@ -14,8 +14,8 @@ func TestHandleHelp(t *testing.T) {
 	c := &Core{}
 	mb := core.NewMockBot(slack.UUIDv4().ToShortString())
 
-	handleErr := c.handleHelp(mb, core.MockMessage("help"))
-	assert.Nil(handleErr)
+	err := c.handleHelp(mb, core.MockMessage("help"))
+	assert.Nil(err)
 }
 
 func TestHandleTell(t *testing.T) {
@@ -29,8 +29,8 @@ func TestHandleTell(t *testing.T) {
 		return nil
 	})
 
-	handleErr := c.handleTell(mb, core.MockMessage("tell <@TESTUSER> they're cool"))
-	assert.Nil(handleErr)
+	err := c.handleTell(mb, core.MockMessage("tell <@TESTUSER> they're cool"))
+	assert.Nil(err)
 	assert.Equal("<@TESTUSER> you are cool", gotMessage)
 }
 
@@ -38,8 +38,8 @@ func TestHandleChannels(t *testing.T) {
 	assert := assert.New(t)
 	c := &Core{}
 	mb := core.NewMockBot(slack.UUIDv4().ToShortString())
-	handleErr := c.handleChannels(mb, core.MockMessage("channels"))
-	assert.Nil(handleErr)
+	err := c.handleChannels(mb, core.MockMessage("channels"))
+	assert.Nil(err)
 }
 
 func TestHandleMentionCatchAllSalutation(t *testing.T) {
@@ -55,8 +55,8 @@ func TestHandleMentionCatchAllSalutation(t *testing.T) {
 
 	message := "hey <@BOT>"
 	assert.True(core.IsSalutation(message))
-	handleErr := c.handleSalutation(mb, core.MockMessage(message))
-	assert.Nil(handleErr)
+	err := c.handleSalutation(mb, core.MockMessage(message))
+	assert.Nil(err)
 	assert.False(strings.Contains(gotMessage, "how to respond"))
 }
 
@@ -73,8 +73,8 @@ func TestHandleMentionCatchNonSalutation(t *testing.T) {
 
 	message := "this is a test message"
 	assert.False(core.IsSalutation(message))
-	handleErr := c.handleMentionCatchAll(mb, core.MockMessage(message))
-	assert.Nil(handleErr)
+	err := c.handleMentionCatchAll(mb, core.MockMessage(message))
+	assert.Nil(err)
 	println(gotMessage)
 	assert.True(strings.Contains(gotMessage, "how to respond"))
 }

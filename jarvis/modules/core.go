@@ -105,11 +105,11 @@ func (c *Core) handleTime(b core.Bot, m *slack.Message) error {
 		},
 	}
 
-	_, messageErr := b.Client().ChatPostMessage(message)
-	if messageErr != nil {
-		fmt.Printf("issue posting message: %v\n", messageErr)
+	_, err := b.Client().ChatPostMessage(message)
+	if err != nil {
+		fmt.Printf("issue posting message: %v\n", err)
 	}
-	return messageErr
+	return err
 }
 
 func (c *Core) handleTell(b core.Bot, m *slack.Message) error {

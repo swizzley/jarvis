@@ -52,9 +52,9 @@ func (s *Stocks) handleStockPrice(b core.Bot, m *slack.Message) error {
 	} else {
 		tickers = []string{rawTicker}
 	}
-	stockInfo, stockErr := external.StockPrice(tickers, external.StockDefaultFormat)
-	if stockErr != nil {
-		return stockErr
+	stockInfo, err := external.StockPrice(tickers, external.StockDefaultFormat)
+	if err != nil {
+		return err
 	}
 	return s.announceStocks(b, m.Channel, stockInfo)
 }
