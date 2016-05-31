@@ -453,7 +453,7 @@ func (rtm *Client) cycleConnection() error {
 func (rtm *Client) listenLoop() (err error) {
 	defer func() {
 		if err != nil {
-			fmt.Printf("Exiting Listen Loop, err: %#v\n", err)
+			fmt.Printf("Slack :: Exiting Listen Loop, err: %#v\n", err)
 		}
 	}()
 	var messageBytes []byte
@@ -480,6 +480,7 @@ func (rtm *Client) listenLoop() (err error) {
 			} else if bm.OK == nil { //not sure how else to tell if a message is a read receipt or not
 				err = json.Unmarshal(messageBytes, &m)
 				if err == nil {
+					fmt.Printf("Dispatching: %#v\n", m)
 					rtm.dispatch(&m)
 				}
 			}
