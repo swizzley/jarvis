@@ -461,6 +461,7 @@ func (rtm *Client) listenLoop() error {
 			return err
 		}
 
+		fmt.Printf("incoming raw message: %s\n", messageBytes)
 		err = json.Unmarshal(messageBytes, &bm)
 		if bm.Type == EventChannelJoined {
 			err = json.Unmarshal(messageBytes, &cm)

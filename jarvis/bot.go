@@ -311,18 +311,12 @@ func (b *Bot) dispatchResponse(m *slack.Message) error {
 		}
 	}()
 
-	b.Logf("bot id: %s\n", b.id)
-	b.Logf("dispatch message(%#v)\n", m)
-
 	//b.LogIncomingMessage(m)
 	user := b.FindUser(m.User)
 	if user != nil {
-		b.Logf("user is known: %#v\n", user)
 		if m.User != "slackbot" && m.User != b.id && !user.IsBot {
-			b.Logf("user is not a bot, and is not bot itself\n")
 			messageText := util.TrimWhitespace(core.LessMentions(m.Text))
 			if core.IsUserMention(m.Text, b.id) || core.IsDM(m.Channel) {
-				b.Logf("message is a mention or a dm.")
 				for _, action := range b.mentionActions {
 					if core.Like(messageText, action.MessagePattern) && len(action.MessagePattern) != 0 {
 						return action.Handler(b, m)
