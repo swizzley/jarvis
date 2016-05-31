@@ -237,6 +237,11 @@ const (
 	EventSubtypeChannelUnarchive Event = "channel_unarchive"
 )
 
+const (
+	// DefaultPingInterval is the ping interval in seconds.
+	DefaultPingInterval = 30 * time.Second
+)
+
 // Listener is a function that recieves messages from a client.
 type Listener func(message *Message, client *Client)
 
@@ -249,7 +254,7 @@ type Listener func(message *Message, client *Client)
 
 // NewClient creates a Client with a given token.
 func NewClient(token string) *Client {
-	c := &Client{Token: token, EventListeners: map[Event][]Listener{}, ActiveChannels: []string{}, activeLock: &sync.Mutex{}, pingInterval: 2 * time.Second}
+	c := &Client{Token: token, EventListeners: map[Event][]Listener{}, ActiveChannels: []string{}, activeLock: &sync.Mutex{}, pingInterval: DefaultPingInterval}
 	c.Listen(EventChannelJoined, c.handleChannelJoined)
 	c.Listen(EventChannelDeleted, c.handleChannelDeleted)
 	c.Listen(EventChannelUnArchive, c.handleChannelUnarchive)
