@@ -47,7 +47,7 @@ func NewBot(token string) *Bot {
 		configuration:  map[string]string{},
 		actionLookup:   map[string]core.Action{},
 		modules:        map[string]core.BotModule{},
-		loadedModules:  collections.StringSet{},
+		loadedModules:  collections.SetOfString{},
 		mentionActions: []core.Action{},
 		passiveActions: []core.Action{},
 	}
@@ -65,7 +65,7 @@ type Bot struct {
 	client           *slack.Client
 
 	modules       map[string]core.BotModule
-	loadedModules collections.StringSet
+	loadedModules collections.SetOfString
 
 	mentionActions []core.Action
 	passiveActions []core.Action
@@ -213,13 +213,13 @@ func (b *Bot) UnloadModule(moduleName string) {
 }
 
 // LoadedModules returns the currently loaded modules.
-func (b *Bot) LoadedModules() collections.StringSet {
+func (b *Bot) LoadedModules() collections.SetOfString {
 	return b.loadedModules
 }
 
 // RegisteredModules returns the registered modules.
-func (b *Bot) RegisteredModules() collections.StringSet {
-	registered := collections.StringSet{}
+func (b *Bot) RegisteredModules() collections.SetOfString {
+	registered := collections.SetOfString{}
 	for key := range b.modules {
 		registered.Add(key)
 	}

@@ -33,8 +33,8 @@ type Bot interface {
 
 	LoadModule(moduleName string) error
 	UnloadModule(moduleName string)
-	RegisteredModules() collections.StringSet
-	LoadedModules() collections.StringSet
+	RegisteredModules() collections.SetOfString
+	LoadedModules() collections.SetOfString
 
 	Actions() []Action
 	AddAction(action Action)

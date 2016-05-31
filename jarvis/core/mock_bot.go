@@ -31,7 +31,7 @@ type MockBot struct {
 	actions          map[string]Action
 
 	modules       map[string]BotModule
-	loadedModules collections.StringSet
+	loadedModules collections.SetOfString
 
 	mockMessageHandler MessageHandler
 }
@@ -178,13 +178,13 @@ func (mb *MockBot) UnloadModule(moduleName string) {
 }
 
 // LoadedModules returns the currently loaded modules.
-func (mb *MockBot) LoadedModules() collections.StringSet {
+func (mb *MockBot) LoadedModules() collections.SetOfString {
 	return mb.loadedModules
 }
 
 // RegisteredModules returns the registered modules.
-func (mb *MockBot) RegisteredModules() collections.StringSet {
-	registered := collections.StringSet{}
+func (mb *MockBot) RegisteredModules() collections.SetOfString {
+	registered := collections.SetOfString{}
 	for key := range mb.modules {
 		registered.Add(key)
 	}
