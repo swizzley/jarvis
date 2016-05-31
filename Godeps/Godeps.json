@@ -4,23 +4,23 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/blendlabs/go-chronometer",
-			"Rev": "4dde33d87809020866456665a0b0367d0dcf8d85"
+			"Rev": "ae7fea16d015672f4f2a5f65b082d5d36ab9099c"
 		},
 		{
 			"ImportPath": "github.com/blendlabs/go-exception",
-			"Rev": "02cdddefb066ba454eea125a322e6c52a37366a6"
+			"Rev": "4f8219ce4d9bf0a7074e988fb5dc8d71d536db13"
 		},
 		{
 			"ImportPath": "github.com/blendlabs/go-request",
-			"Rev": "a37b726082682c1f35ae5292b2f8a69ef5f62eae"
+			"Rev": "d99acfe45d6afdd681b86696523f66395e03af58"
 		},
 		{
 			"ImportPath": "github.com/blendlabs/go-util",
-			"Rev": "d41eef312a09c0bccb52f06004cbe2578daa221f"
+			"Rev": "1327c2d7cf3e49fb9de2fd66e64c2898befc2361"
 		},
 		{
 			"ImportPath": "github.com/blendlabs/go-util/collections",
-			"Rev": "d41eef312a09c0bccb52f06004cbe2578daa221f"
+			"Rev": "1327c2d7cf3e49fb9de2fd66e64c2898befc2361"
 		},
 		{
 			"ImportPath": "github.com/dlintw/goconf",
@@ -32,7 +32,7 @@
 		},
 		{
 			"ImportPath": "github.com/wcharczuk/go-slack",
-			"Rev": "ae5468230a5d1b1f355a6f5a03eb3eb772f7c415"
+			"Rev": "82666e4d53e1cfb548e140f7982c7cd1d60247bd"
 		}
 	]
 }

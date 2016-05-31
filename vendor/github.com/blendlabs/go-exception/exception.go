@@ -52,9 +52,13 @@ func (e *Exception) Error() string {
 	message = message + fmt.Sprintf("\n%11s", "At: ")
 	message = message + formatStackTrace(prefixLines(spaces(11), e.StackTrace()))
 
+	if e.innerException == e {
+		panic("exception loop cycle length 1")
+	}
+
 	if e.innerException != nil {
 		innerErrorMessage := e.innerException.Error()
-		message = message + fmt.Sprintf("\nNested %s", innerErrorMessage)
+		message = message + fmt.Sprintf("\n\nWrapped Exception: %s", innerErrorMessage)
 	}
 	return message
 }
@@ -94,18 +98,18 @@ func Wrap(err error) error {
 
 // WrapMany wraps an arbitrary number of exceptions.
 func WrapMany(err ...error) error {
-	var ex *Exception
+	var ex *Exception //(*Exception)(nil) != nil
 	didSet := false
+
 	for _, e := range err {
 		if e != nil {
-			if typeWrapped, didTypeCorrectly := Wrap(e).(*Exception); didTypeCorrectly {
-				if typeWrapped != nil {
-					if ex == nil {
-						ex = typeWrapped
-					} else {
-						typeWrapped.innerException = ex
-						ex = typeWrapped
-					}
+			typedException := Wrap(e).(*Exception)
+			if typedException != nil && typedException != ex {
+				if ex == nil {
+					ex = typedException
+				} else {
+					typedException.innerException = ex
+					ex = typedException
 				}
 				didSet = true
 			}
@@ -115,7 +119,6 @@ func WrapMany(err ...error) error {
 		return ex
 	}
 	return nil
-
 }
 
 // WrapError is a shortcut method for wrapping an error by calling .Message() on it.
