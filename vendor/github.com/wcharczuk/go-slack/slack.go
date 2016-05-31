@@ -470,6 +470,7 @@ func (rtm *Client) listenLoop() (err error) {
 			return err
 		}
 
+		fmt.Printf("new message: %s\n", messageBytes)
 		err = json.Unmarshal(messageBytes, &bm)
 		if err == nil {
 			if bm.Type == EventChannelJoined {
