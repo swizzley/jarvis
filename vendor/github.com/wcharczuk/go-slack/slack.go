@@ -486,6 +486,8 @@ func (rtm *Client) listenLoop() (err error) {
 				}
 			}
 		}
+
+		bm.OK = nil
 	}
 }
 
