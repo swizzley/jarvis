@@ -467,18 +467,17 @@ func (rtm *Client) listenLoop() error {
 		}
 
 		err = json.Unmarshal(messageBytes, &bm)
-		if err != nil {
-			return err
-		}
-		if bm.Type == EventChannelJoined {
-			err = json.Unmarshal(messageBytes, &cm)
-			if err == nil {
-				rtm.dispatch(&Message{Type: EventChannelJoined, Channel: cm.Channel.ID})
-			}
-		} else if bm.OK == nil { //not sure how else to tell if a message is a reply or not
-			err = json.Unmarshal(messageBytes, &m)
-			if err == nil {
-				rtm.dispatch(&m)
+		if err == nil {
+			if bm.Type == EventChannelJoined {
+				err = json.Unmarshal(messageBytes, &cm)
+				if err == nil {
+					rtm.dispatch(&Message{Type: EventChannelJoined, Channel: cm.Channel.ID})
+				}
+			} else if bm.OK == nil { //not sure how else to tell if a message is a reply or not
+				err = json.Unmarshal(messageBytes, &m)
+				if err == nil {
+					rtm.dispatch(&m)
+				}
 			}
 		}
 	}
