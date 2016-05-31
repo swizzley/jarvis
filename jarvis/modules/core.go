@@ -174,8 +174,5 @@ func (c *Core) handlePassiveCatchAll(b core.Bot, m *slack.Message) error {
 }
 
 func (c *Core) handleUnknown(b core.Bot, m *slack.Message) error {
-	if m.User != b.ID() {
-		return b.Sayf(m.Channel, "I don't know how to respond to this\n>%s", m.Text)
-	}
-	return nil
+	return b.Sayf(m.Channel, "I don't know how to respond to this\n>%s", m.Text)
 }
