@@ -450,8 +450,12 @@ func (rtm *Client) cycleConnection() error {
 	return err
 }
 
-func (rtm *Client) listenLoop() error {
-	var err error
+func (rtm *Client) listenLoop() (err error) {
+	defer func() {
+		if err != nil {
+			fmt.Printf("Exiting Listen Loop, err: %#v\n", err)
+		}
+	}()
 	var messageBytes []byte
 	var bm BareMessage
 	var cm ChannelJoinedMessage
@@ -473,7 +477,7 @@ func (rtm *Client) listenLoop() error {
 				if err == nil {
 					rtm.dispatch(&Message{Type: EventChannelJoined, Channel: cm.Channel.ID})
 				}
-			} else if bm.OK == nil { //not sure how else to tell if a message is a reply or not
+			} else if bm.OK == nil { //not sure how else to tell if a message is a read receipt or not
 				err = json.Unmarshal(messageBytes, &m)
 				if err == nil {
 					rtm.dispatch(&m)
