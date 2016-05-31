@@ -377,14 +377,14 @@ func (b *Bot) createChannelLookup(session *slack.Session) map[string]slack.Chann
 
 // Say calls the internal slack.Client.Say method.
 func (b *Bot) Say(destinationID string, components ...interface{}) error {
-	b.LogOutgoingMessage(destinationID, components...)
+	//b.LogOutgoingMessage(destinationID, components...)
 	return b.client.Say(destinationID, components...)
 }
 
 // Sayf calls the internal slack.Client.Sayf method.
 func (b *Bot) Sayf(destinationID string, format string, components ...interface{}) error {
-	message := fmt.Sprintf(format, components...)
-	b.LogOutgoingMessage(destinationID, message)
+	//message := fmt.Sprintf(format, components...)
+	//b.LogOutgoingMessage(destinationID, message)
 	return b.client.Sayf(destinationID, format, components...)
 }
 
