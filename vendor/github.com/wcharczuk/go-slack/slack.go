@@ -466,14 +466,13 @@ func (rtm *Client) listenLoop() error {
 			return err
 		}
 
-		fmt.Printf("incoming raw message: %s\n", messageBytes)
 		err = json.Unmarshal(messageBytes, &bm)
 		if bm.Type == EventChannelJoined {
 			err = json.Unmarshal(messageBytes, &cm)
 			if err == nil {
 				rtm.dispatch(&Message{Type: EventChannelJoined, Channel: cm.Channel.ID})
 			}
-		} else {
+		} else if bm.OK != nil { //not sure how else to tell if a message is a reply or not
 			err = json.Unmarshal(messageBytes, &m)
 			if err == nil {
 				rtm.dispatch(&m)
