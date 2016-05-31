@@ -272,10 +272,12 @@ func (b *Bot) Init() error {
 		b.Log("slack is connected")
 	})
 	b.client.Listen(slack.EventMessage, func(m *slack.Message, c *slack.Client) {
-		resErr := b.dispatchResponse(m)
-		if resErr != nil {
-			c.Sayf(m.Channel, "there was an error handling the message:\n> %s", resErr.Error())
-			b.Log(resErr)
+		if m.User != b.ID() {
+			resErr := b.dispatchResponse(m)
+			if resErr != nil {
+				c.Sayf(m.Channel, "there was an error handling the message:\n> %s", resErr.Error())
+				b.Log(resErr)
+			}
 		}
 	})
 
