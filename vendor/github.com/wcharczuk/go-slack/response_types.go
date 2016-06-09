@@ -108,15 +108,17 @@ type Bot struct {
 	Icons Icon   `json:"icons"`
 }
 
-// BareMessage is an intermediate type used to figure out what final type to deserialize a message as.
-type BareMessage struct {
-	OK   *bool `json:"ok"`
+// MessageType is an intermediate type used to figure out what final type to deserialize a message as.
+type MessageType struct {
 	Type Event `json:"type"`
 }
 
 // Message is a basic final message type that encapsulates the most commonly used fields.
+// It is a mutt of a bunch of different types, events, pings/pongs, acks, actual messages.
+// As such not all fields are necessary for ~sending~ messages.
 type Message struct {
-	ID        string     `json:"id"`
+	ID        int64      `json:"id"`
+	ReplyTo   int64      `json:"reply_to"`
 	Type      Event      `json:"type"`
 	SubType   string     `json:"subtype,omitempty"`
 	Hidden    bool       `json:"hidden,omitempty"`
@@ -125,6 +127,13 @@ type Message struct {
 	User      string     `json:"user"`
 	Text      string     `json:"text"`
 	Reactions []Reaction `json:"reactions,omitempty"`
+	Error     *Error     `json:"error,omitempty"`
+}
+
+// Error is a *sometimes* common datatype.
+type Error struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 // Reaction is a reaction on a message.
