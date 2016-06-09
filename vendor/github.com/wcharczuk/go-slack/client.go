@@ -71,6 +71,7 @@ func NewClient(token string) *Client {
 		Token:           token,
 		EventListeners:  map[Event][]EventListener{},
 		ActiveChannels:  []string{},
+		isDebug:         true,
 		pingTimeout:     DefaultPingTimeout,
 		pingMaxInFlight: DefaultPingMaxInFlight,
 		pingMaxFails:    DefaultPingMaxFails,
@@ -101,6 +102,13 @@ type Client struct {
 	pingInFlight     map[int64]time.Time
 	pingInFlightLock sync.Mutex
 	pingInterval     time.Duration
+
+	isDebug bool
+}
+
+// SetDebug turns on debug logging.
+func (rtm *Client) SetDebug(value bool) {
+	rtm.isDebug = value
 }
 
 // AddEventListener attaches a new Listener to the given event.
@@ -241,6 +249,7 @@ func (rtm *Client) doPing() error {
 	if len(rtm.pingInFlight) < rtm.pingMaxInFlight {
 		err = rtm.Ping()
 		if err != nil {
+			fmt.Printf("ping error, cycling connection: %v\n", err)
 			err = rtm.cycleConnection()
 			if err != nil {
 				return err
@@ -252,6 +261,7 @@ func (rtm *Client) doPing() error {
 	for _, v := range rtm.pingInFlight {
 		if now.Sub(v) >= rtm.pingTimeout {
 			err = rtm.cycleConnection()
+			fmt.Printf("ping error, cycling connection: %v\n", err)
 			if err != nil {
 				return err
 			}
@@ -296,13 +306,11 @@ func (rtm *Client) cycleConnection() error {
 func (rtm *Client) listenLoop() (err error) {
 	defer func() {
 		if err != nil {
-			fmt.Printf("Slack :: Exiting Listen Loop, err: %#v\n", err)
+			rtm.logf("exiting Listen Loop, err: %#v", err)
 		}
 	}()
-	var messageBytes []byte
 	var mt MessageType
-	var cm ChannelJoinedMessage
-	var m Message
+	var messageBytes []byte
 
 	for {
 		if rtm.socketConnection == nil {
@@ -315,20 +323,13 @@ func (rtm *Client) listenLoop() (err error) {
 
 		err = json.Unmarshal(messageBytes, &mt)
 		if err == nil {
-			switch mt.Type {
-			case EventChannelJoined:
-				{
-					err = json.Unmarshal(messageBytes, &cm)
-					if err == nil {
-						rtm.dispatch(&Message{Type: EventChannelJoined, Channel: cm.Channel.ID})
-					}
-				}
-			default:
-				{
-					err = json.Unmarshal(messageBytes, &m)
-					if err == nil {
-						rtm.dispatch(&m)
-					}
+			m := Message{}
+			err = json.Unmarshal(messageBytes, &m)
+			if err == nil {
+				if len(mt.Type) == 0 && m.OK != nil { //special situation where acks don't have types and we have to sniff.
+					rtm.dispatch(&Message{Type: EventMessageACK, ReplyTo: m.ReplyTo, Timestamp: m.Timestamp, Text: m.Text})
+				} else {
+					rtm.dispatch(&m)
 				}
 			}
 		}
@@ -336,19 +337,17 @@ func (rtm *Client) listenLoop() (err error) {
 }
 
 func (rtm *Client) dispatch(m *Message) {
-	var listener EventListener
 	if listeners, hasListeners := rtm.EventListeners[m.Type]; hasListeners {
-		for x := 0; x < len(listeners); x++ {
-			listener = listeners[x]
-			go func() {
+		for index := range listeners {
+			go func(listener EventListener) {
 				defer func() {
 					if r := recover(); r != nil {
-						fmt.Printf("go-slack: dispatch() fatal: %#v\n", r)
+						rtm.logf("go-slack: dispatch() fatal: %#v\n", r)
 					}
 				}()
 
 				listener(rtm, m)
-			}()
+			}(listeners[index])
 		}
 	}
 }
@@ -409,4 +408,17 @@ func (rtm *Client) removeActiveChannel(channelID string) {
 		}
 	}
 	rtm.ActiveChannels = currentChannels
+}
+
+func (rtm *Client) log(args ...interface{}) {
+	if rtm.isDebug {
+		fmt.Println(args...)
+	}
+}
+
+func (rtm *Client) logf(format string, args ...interface{}) {
+	if rtm.isDebug {
+		msg := fmt.Sprintf(format, args...)
+		fmt.Printf("%s\n", msg)
+	}
 }

@@ -267,6 +267,7 @@ func (b *Bot) Init() error {
 	b.loadConfiguredModules()
 
 	client := slack.NewClient(b.token)
+	client.SetDebug(true)
 	b.client = client
 	b.client.AddEventListener(slack.EventHello, func(c *slack.Client, m *slack.Message) {
 		b.Log("slack is connected")
