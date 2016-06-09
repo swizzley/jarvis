@@ -51,7 +51,8 @@ func (j *Jira) Init(b core.Bot) error {
 		if len(envCredentials) != 0 {
 			b.Configuration()[ConfigJiraCredentials] = envCredentials
 		} else {
-			return exception.Newf("No `%s` provided, module `%s` cannot load.", EnvironmentJiraCredentials, ModuleJira)
+			b.Logf("No `%s` provided, module `%s` cannot load.", EnvironmentJiraHost, ModuleJira)
+			return nil
 		}
 	}
 
@@ -60,7 +61,8 @@ func (j *Jira) Init(b core.Bot) error {
 		if len(envHost) != 0 {
 			b.Configuration()[ConfigJiraHost] = envHost
 		} else {
-			return exception.Newf("No `%s` provided, module `%s` cannot load.", EnvironmentJiraHost, ModuleJira)
+			b.Logf("No `%s` provided, module `%s` cannot load.", EnvironmentJiraHost, ModuleJira)
+			return nil
 		}
 	}
 

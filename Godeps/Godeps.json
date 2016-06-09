@@ -32,7 +32,7 @@
 		},
 		{
 			"ImportPath": "github.com/wcharczuk/go-slack",
-			"Rev": "3b33820b5583ca62b1b272138ba9e52a0006521f"
+			"Rev": "85ca650a6e68a2dbcdcbf49171f4ffd792934c60"
 		}
 	]
 }

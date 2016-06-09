@@ -268,10 +268,16 @@ func (b *Bot) Init() error {
 
 	client := slack.NewClient(b.token)
 	b.client = client
-	b.client.Listen(slack.EventHello, func(m *slack.Message, c *slack.Client) {
+	b.client.AddEventListener(slack.EventHello, func(c *slack.Client, m *slack.Message) {
 		b.Log("slack is connected")
 	})
-	b.client.Listen(slack.EventMessage, func(m *slack.Message, c *slack.Client) {
+	b.client.AddEventListener(slack.EventPing, func(c *slack.Client, m *slack.Message) {
+		b.Log("ping!")
+	})
+	b.client.AddEventListner(slack.EventPong, func(c *slack.Client, m *slack.Message) {
+		b.Log("pong!")
+	})
+	b.client.AddEventListener(slack.EventMessage, func(c *slack.Client, m *slack.Message) {
 		resErr := b.dispatchResponse(m)
 		if resErr != nil {
 			c.Sayf(m.Channel, "there was an error handling the message:\n> %s", resErr.Error())
