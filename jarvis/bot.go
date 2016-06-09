@@ -274,7 +274,7 @@ func (b *Bot) Init() error {
 	b.client.AddEventListener(slack.EventPing, func(c *slack.Client, m *slack.Message) {
 		b.Log("ping!")
 	})
-	b.client.AddEventListner(slack.EventPong, func(c *slack.Client, m *slack.Message) {
+	b.client.AddEventListener(slack.EventPong, func(c *slack.Client, m *slack.Message) {
 		b.Log("pong!")
 	})
 	b.client.AddEventListener(slack.EventMessage, func(c *slack.Client, m *slack.Message) {
