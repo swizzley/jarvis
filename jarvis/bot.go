@@ -22,20 +22,19 @@ const (
 )
 
 // NewBotFromEnvironment creates a new bot from environment variables.
-func NewBotFromEnvironment() *Bot {
+func NewBotFromEnvironment() (*Bot, error) {
 	envToken := os.Getenv(EnvironmentSlackAPIToken)
 	if len(envToken) == 0 {
-		return nil
+		return nil, exception.Newf("`%s` is empty, cannot start bot.", EnvironmentSlackAPIToken)
 	}
 	b := NewBot(envToken)
-
 	envModules := os.Getenv(modules.EnvironmentModules)
 	if len(envModules) != 0 {
 		b.Configuration()[modules.ConfigModules] = envModules
 	} else {
 		b.Configuration()[modules.ConfigModules] = "all"
 	}
-	return b
+	return b, nil
 }
 
 // NewBot returns a new Bot instance.
@@ -179,6 +178,22 @@ func (b *Bot) ActiveChannels() []string {
 
 // RegisterModule loads a given bot module
 func (b *Bot) RegisterModule(m core.BotModule) {
+	if b == nil {
+		println("RegisterModule `b` is <nil>")
+		return
+	}
+	if b.modules == nil {
+		println("RegisterModule `b.modules` is <nil>")
+		return
+	}
+	if m == nil {
+		println("RegisterModule `m` is <nil>")
+		return
+	}
+	if len(m.Name()) == 0 {
+		println("RegisterModule `m.Name()` is empty")
+		return
+	}
 	b.modules[m.Name()] = m
 }
 
@@ -263,7 +278,6 @@ func (b *Bot) Init() error {
 	b.RegisterModule(&modules.Config{})
 	b.RegisterModule(&modules.Util{})
 	b.RegisterModule(&modules.Core{})
-
 	b.loadConfiguredModules()
 
 	client := slack.NewClient(b.token)

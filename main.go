@@ -38,18 +38,26 @@ func main() {
 	if configFile != nil && len(*configFile) != 0 {
 		bots = initializeBotsFromConfig(*configFile)
 	} else {
-		bot := intializeBotFromEnvironment()
+		bot, err := intializeBotFromEnvironment()
+		if err != nil {
+			fmt.Printf("Error Initializing Bot From Environment: %v\n", err)
+			os.Exit(1)
+		}
+
 		bots = []*jarvis.Bot{bot}
 	}
 
 	startStatusServer(bots)
 }
 
-func intializeBotFromEnvironment() *jarvis.Bot {
-	b := jarvis.NewBotFromEnvironment()
+func intializeBotFromEnvironment() (*jarvis.Bot, error) {
+	b, err := jarvis.NewBotFromEnvironment()
+	if err != nil {
+		return nil, err
+	}
 	b.Init()
 	b.Start()
-	return b
+	return b, nil
 }
 
 func initializeBotsFromConfig(configPath string) []*jarvis.Bot {
@@ -61,20 +69,20 @@ func initializeBotsFromConfig(configPath string) []*jarvis.Bot {
 	}
 
 	for _, section := range config.GetSections() {
-		tokenRaw, tokenErr := config.GetString(section, "SLACK_API_TOKEN")
-		if tokenErr == nil {
-			decryptedToken, decryptErr := decryptValue(tokenRaw)
-			if decryptErr != nil {
-				fmt.Printf("error decrypting slack token: %v\n", decryptErr)
+		tokenRaw, err := config.GetString(section, "SLACK_API_TOKEN")
+		if err == nil {
+			decryptedToken, err := decryptValue(tokenRaw)
+			if err != nil {
+				fmt.Printf("error decrypting slack token: %v\n", err)
 				os.Exit(1)
 			}
 			j := jarvis.NewBot(decryptedToken)
 
 			options, _ := config.GetOptions(section)
 			for _, option := range options {
-				if value, valueErr := config.GetString(section, option); valueErr == nil {
-					decryptedValue, decryptErr := decryptValue(value)
-					if decryptErr == nil {
+				if value, err := config.GetString(section, option); err == nil {
+					decryptedValue, err := decryptValue(value)
+					if err == nil {
 						j.Configuration()[strings.ToUpper(option)] = decryptedValue
 					} else {
 						j.Configuration()[strings.ToUpper(option)] = value
@@ -85,6 +93,8 @@ func initializeBotsFromConfig(configPath string) []*jarvis.Bot {
 			j.Init()
 			j.Start()
 			bots = append(bots, j)
+		} else {
+			fmt.Printf("Error Reading `SLACK_API_TOKEN`: %v\n", err)
 		}
 	}
 	return bots
