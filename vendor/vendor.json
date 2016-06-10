@@ -59,5 +59,9 @@
 	],
 	"rootPath": "github.com/wcharczuk/jarvis",
 	"ImportPath": "github.com/wcharczuk/jarvis",
-    "GoVersion": "go1.6"
+    "goVersion": "go1.6",
+	"heroku" : {
+		"install" : ".",
+		"goVersion": "go1.6"
+	}
 }
