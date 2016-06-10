@@ -1,5 +1,5 @@
 {
-	"comment": "",
+	"comment": "Jarvis is a bot framework for slack that leverages `go-slack`.",
 	"ignore": "test",
 	"package": [
 		{
@@ -57,5 +57,7 @@
 			"revisionTime": "2016-06-09T19:49:34Z"
 		}
 	],
-	"rootPath": "github.com/wcharczuk/jarvis"
+	"rootPath": "github.com/wcharczuk/jarvis",
+	"ImportPath": "github.com/wcharczuk/jarvis",
+    "GoVersion": "go1.6"
 }
