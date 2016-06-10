@@ -85,6 +85,9 @@ func (b *Bot) Token() string {
 
 // OrganizationName returns the organization name.
 func (b *Bot) OrganizationName() string {
+	if len(b.organizationName) == 0 {
+		return "jarvis"
+	}
 	return b.organizationName
 }
 
@@ -417,11 +420,10 @@ func (b *Bot) LogOutgoingMessage(destinationID string, components ...interface{}
 // Log writes to the log.
 func (b *Bot) Log(components ...interface{}) {
 	message := fmt.Sprint(components...)
-	fmt.Printf("%s - %s - %s\n", b.OrganizationName(), time.Now().UTC().Format(time.RFC3339), message)
+	fmt.Printf("%s - %s - %s\n", util.Color(b.OrganizationName(), util.ColorBlue), util.Color(time.Now().UTC().Format(time.RFC3339), util.ColorLightBlack), message)
 }
 
 // Logf writes to the log in a given format.
 func (b *Bot) Logf(format string, components ...interface{}) {
-	message := fmt.Sprintf(format, components...)
-	fmt.Printf("%s - %s - %s\n", b.OrganizationName(), time.Now().UTC().Format(time.RFC3339), message)
+	b.Log(fmt.Sprintf(format, components...))
 }

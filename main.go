@@ -55,8 +55,14 @@ func intializeBotFromEnvironment() (*jarvis.Bot, error) {
 	if err != nil {
 		return nil, err
 	}
-	b.Init()
-	b.Start()
+	err = b.Init()
+	if err != nil {
+		return nil, err
+	}
+	err = b.Start()
+	if err != nil {
+		return nil, err
+	}
 	return b, nil
 }
 
@@ -102,7 +108,7 @@ func initializeBotsFromConfig(configPath string) []*jarvis.Bot {
 
 func startStatusServer(bots []*jarvis.Bot) {
 	http.HandleFunc("/", injectBots(bots, statusHandler))
-	fmt.Printf("jarvis-cli - %s - starting status server, listening on: %s\n", time.Now().UTC().Format(time.RFC3339), port())
+	fmt.Printf("%s - %s - starting status server, listening on: %s\n", util.Color("jarvis-cli", util.ColorBlue), util.Color(time.Now().UTC().Format(time.RFC3339), util.ColorLightBlack), port())
 	http.ListenAndServe(":"+port(), nil)
 }
 
