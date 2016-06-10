@@ -32,6 +32,7 @@ package slack
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sync"
 	"time"
@@ -126,15 +127,15 @@ func (rtm *Client) RemoveEventListeners(event Event) {
 // Connect be4gins a session with Slack.
 func (rtm *Client) Connect() (*Session, error) {
 	res := Session{}
-	err := NewExternalRequest().
+	meta, err := NewExternalRequest().
 		AsPost().
 		WithScheme(APIScheme).
 		WithHost(APIEndpoint).
 		WithPath("api/rtm.start").
 		WithPostData("token", rtm.Token).
-		WithPostData("no_unreads", "true").
+		WithPostData("no_unreads", "false").
 		WithPostData("mpim_aware", "true").
-		FetchJSONToObject(&res)
+		FetchJSONToObjectWithMeta(&res)
 
 	if err != nil {
 		return nil, err
@@ -142,6 +143,10 @@ func (rtm *Client) Connect() (*Session, error) {
 
 	if !IsEmpty(res.Error) {
 		return nil, exception.New(res.Error)
+	}
+
+	if meta.StatusCode > http.StatusOK {
+		return exception.New("Non-200 Status from Slack, aborting.")
 	}
 
 	//start socket connection
@@ -249,10 +254,10 @@ func (rtm *Client) doPing() error {
 	if len(rtm.pingInFlight) < rtm.pingMaxInFlight {
 		err = rtm.Ping()
 		if err != nil {
-			fmt.Printf("ping error, cycling connection: %v\n", err)
+			rtm.logf("ping error, cycling connection: %v\n", err)
 			err = rtm.cycleConnection()
 			if err != nil {
-				return err
+				rtm.logf("error cycling connection: %v\n", err)
 			}
 		}
 	}
@@ -261,10 +266,15 @@ func (rtm *Client) doPing() error {
 	for _, v := range rtm.pingInFlight {
 		if now.Sub(v) >= rtm.pingTimeout {
 			err = rtm.cycleConnection()
-			fmt.Printf("ping error, cycling connection: %v\n", err)
 			if err != nil {
-				return err
+				rtm.logf("error cycling connection: %v\n", err)
 			}
+		}
+	}
+
+	for k, v := range rtm.pingInFlight {
+		if now.Sub(v) >= rtm.pingTimeout {
+			delete(rtm.pingInFlight, k)
 		}
 	}
 	return nil
@@ -278,7 +288,7 @@ func (rtm *Client) handlePong(client *Client, message *Message) {
 
 func (rtm *Client) cycleConnection() error {
 	res := Session{}
-	err := NewExternalRequest().
+	meta, err := NewExternalRequest().
 		AsPost().
 		WithScheme(APIScheme).
 		WithHost(APIEndpoint).
@@ -286,10 +296,14 @@ func (rtm *Client) cycleConnection() error {
 		WithPostData("token", rtm.Token).
 		WithPostData("no_unreads", "true").
 		WithPostData("mpim_aware", "true").
-		FetchJSONToObject(&res)
+		FetchJSONToObjectWithMeta(&res)
 
 	if err != nil {
 		return err
+	}
+
+	if meta.StatusCode > http.StatusOK {
+		return exception.New("Non-200 Status from Slack, aborting.")
 	}
 
 	rtm.pingInFlight = map[int64]time.Time{}

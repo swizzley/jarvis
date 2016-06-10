@@ -1,5 +1,13 @@
 {
+	"ImportPath": "github.com/wcharczuk/jarvis",
 	"comment": "Jarvis is a bot framework for slack that leverages `go-slack`.",
+	"goVersion": "go1.6",
+	"heroku": {
+		"goVersion": "go1.6",
+		"install": [
+			"."
+		]
+	},
 	"ignore": "test",
 	"package": [
 		{
@@ -51,17 +59,11 @@
 			"revisionTime": "2016-02-17T17:43:51Z"
 		},
 		{
-			"checksumSHA1": "uc0uxXNZZFRmG5fWVCg7D7BeV+4=",
+			"checksumSHA1": "Z0+TJOjyvV16XXteHPdezcPdXVE=",
 			"path": "github.com/wcharczuk/go-slack",
-			"revision": "4351de0c633f1e165cf13e484f53fe4e184fca7f",
-			"revisionTime": "2016-06-09T19:49:34Z"
+			"revision": "56be4826137022ab11eae98b23ae68a653d955df",
+			"revisionTime": "2016-06-10T17:55:44Z"
 		}
 	],
-	"rootPath": "github.com/wcharczuk/jarvis",
-	"ImportPath": "github.com/wcharczuk/jarvis",
-    "goVersion": "go1.6",
-	"heroku" : {
-		"install" : ["."],
-		"goVersion": "go1.6"
-	}
+	"rootPath": "github.com/wcharczuk/jarvis"
 }
