@@ -9,4 +9,6 @@ type Queue interface {
 	PeekBack() interface{}
 	AsSlice() []interface{}
 	Clear()
+
+	Each(consumer func(value interface{}))
 }

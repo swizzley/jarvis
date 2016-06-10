@@ -5,8 +5,13 @@ import (
 	"strings"
 )
 
-// NewSetOfInt returns a new SetOfInt
-func NewSetOfInt(values []int) SetOfInt {
+// NewSetOfInt creates a new SetOfInt.
+func NewSetOfInt() SetOfInt {
+	return SetOfInt{}
+}
+
+// NewSetOfIntFromValues returns a new SetOfInt from a slice.
+func NewSetOfIntFromValues(values []int) SetOfInt {
 	set := SetOfInt{}
 	for _, v := range values {
 		set.Add(v)
@@ -38,6 +43,66 @@ func (si SetOfInt) Len() int {
 	return len(si)
 }
 
+// Copy returns a new copy of the set.
+func (si SetOfInt) Copy() SetOfInt {
+	newSet := NewSetOfInt()
+	for key := range si {
+		newSet.Add(key)
+	}
+	return newSet
+}
+
+// Union joins two sets together without dupes.
+func (si SetOfInt) Union(other SetOfInt) SetOfInt {
+	union := NewSetOfInt()
+	for k := range si {
+		union.Add(k)
+	}
+
+	for k := range other {
+		union.Add(k)
+	}
+	return union
+}
+
+// Intersect returns shared elements between two sets.
+func (si SetOfInt) Intersect(other SetOfInt) SetOfInt {
+	intersection := NewSetOfInt()
+	for k := range si {
+		if other.Contains(k) {
+			intersection.Add(k)
+		}
+	}
+	return intersection
+}
+
+// Difference returns non-shared elements between two sets.
+func (si SetOfInt) Difference(other SetOfInt) SetOfInt {
+	difference := NewSetOfInt()
+	for k := range si {
+		if !other.Contains(k) {
+			difference.Add(k)
+		}
+	}
+	for k := range other {
+		if !si.Contains(k) {
+			difference.Add(k)
+		}
+	}
+	return difference
+}
+
+// IsSubsetOf returns if a given set is a complete subset of another set,
+// i.e. all elements in target set are in other set.
+func (si SetOfInt) IsSubsetOf(other SetOfInt) bool {
+	for k := range si {
+		if !other.Contains(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // AsSlice returns the set as a slice.
 func (si SetOfInt) AsSlice() []int {
 	output := []int{}
@@ -57,8 +122,13 @@ func (si SetOfInt) String() string {
 	return strings.Join(values, ", ")
 }
 
-// NewSetOfString returns a new SetOfString.
-func NewSetOfString(values []string) SetOfString {
+// NewSetOfString creates a new SetOfString.
+func NewSetOfString() SetOfString {
+	return SetOfString{}
+}
+
+// NewSetOfStringFromValues returns a new SetOfString from the given values.
+func NewSetOfStringFromValues(values []string) SetOfString {
 	set := SetOfString{}
 	for _, v := range values {
 		set.Add(v)
@@ -103,6 +173,57 @@ func (ss SetOfString) Copy() SetOfString {
 		newSet.Add(key)
 	}
 	return newSet
+}
+
+// Union joins two sets together without dupes.
+func (ss SetOfString) Union(other SetOfString) SetOfString {
+	union := NewSetOfString()
+	for k := range ss {
+		union.Add(k)
+	}
+
+	for k := range other {
+		union.Add(k)
+	}
+	return union
+}
+
+// Intersect returns shared elements between two sets.
+func (ss SetOfString) Intersect(other SetOfString) SetOfString {
+	intersection := NewSetOfString()
+	for k := range ss {
+		if other.Contains(k) {
+			intersection.Add(k)
+		}
+	}
+	return intersection
+}
+
+// Difference returns non-shared elements between two sets.
+func (ss SetOfString) Difference(other SetOfString) SetOfString {
+	difference := NewSetOfString()
+	for k := range ss {
+		if !other.Contains(k) {
+			difference.Add(k)
+		}
+	}
+	for k := range other {
+		if !ss.Contains(k) {
+			difference.Add(k)
+		}
+	}
+	return difference
+}
+
+// IsSubsetOf returns if a given set is a complete subset of another set,
+// i.e. all elements in target set are in other set.
+func (ss SetOfString) IsSubsetOf(other SetOfString) bool {
+	for k := range ss {
+		if !other.Contains(k) {
+			return false
+		}
+	}
+	return true
 }
 
 // AsSlice returns the set as a slice.

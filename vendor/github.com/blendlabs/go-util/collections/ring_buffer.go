@@ -172,6 +172,26 @@ func (rb *RingBuffer) AsSlice() []interface{} {
 	return newArray
 }
 
+// Each calls the consumer for each element in the buffer.
+func (rb *RingBuffer) Each(consumer func(value interface{})) {
+	if rb.size == 0 {
+		return
+	}
+
+	if rb.head < rb.tail {
+		for cursor := rb.head; cursor < rb.tail; cursor++ {
+			consumer(rb.array[cursor])
+		}
+	} else {
+		for cursor := rb.head; cursor < len(rb.array); cursor++ {
+			consumer(rb.array[cursor])
+		}
+		for cursor := 0; cursor < rb.tail; cursor++ {
+			consumer(rb.array[cursor])
+		}
+	}
+}
+
 func (rb *RingBuffer) String() string {
 	var values []string
 	for _, elem := range rb.AsSlice() {

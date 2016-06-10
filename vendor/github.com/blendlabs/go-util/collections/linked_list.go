@@ -85,6 +85,19 @@ func (q *LinkedList) Clear() {
 	q.length = 0
 }
 
+// Each calls the consumer for each element of the linked list.
+func (q *LinkedList) Each(consumer func(value interface{})) {
+	if q.head == nil {
+		return
+	}
+
+	nodePtr := q.head
+	for nodePtr != nil {
+		consumer(nodePtr.Value)
+		nodePtr = nodePtr.Previous
+	}
+}
+
 // AsSlice returns the full contents of the queue as a slice.
 func (q *LinkedList) AsSlice() []interface{} {
 	if q.head == nil {

@@ -1,0 +1,61 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "VBwAtJoOqCuy19CVUPgtGHLqYvg=",
+			"path": "github.com/blendlabs/go-assert",
+			"revision": "818eedc5570589009f6d8804b4670b0a369fd9b4",
+			"revisionTime": "2016-03-23T23:33:47Z"
+		},
+		{
+			"checksumSHA1": "f9EdLevxpny9TJUP/AAtOjDYZ9Y=",
+			"path": "github.com/blendlabs/go-chronometer",
+			"revision": "ae7fea16d015672f4f2a5f65b082d5d36ab9099c",
+			"revisionTime": "2016-05-26T18:13:42Z"
+		},
+		{
+			"checksumSHA1": "lAsqE8ZJ3titP59fFMt8jmx6BXY=",
+			"path": "github.com/blendlabs/go-exception",
+			"revision": "4f8219ce4d9bf0a7074e988fb5dc8d71d536db13",
+			"revisionTime": "2016-03-23T23:34:35Z"
+		},
+		{
+			"checksumSHA1": "oqDdDQF2OY2pzj4F3NdccjHyjh0=",
+			"path": "github.com/blendlabs/go-request",
+			"revision": "d99acfe45d6afdd681b86696523f66395e03af58",
+			"revisionTime": "2016-05-17T19:40:19Z"
+		},
+		{
+			"checksumSHA1": "gO7RbvXh/Cwpbtv61gs0sO4ZIFs=",
+			"path": "github.com/blendlabs/go-util",
+			"revision": "5b1aa355a232e003127a8e94667ab499062e5388",
+			"revisionTime": "2016-06-10T04:33:31Z"
+		},
+		{
+			"checksumSHA1": "cUQlxzU4bpI8L1MuL1EgaZV6gJo=",
+			"path": "github.com/blendlabs/go-util/collections",
+			"revision": "5b1aa355a232e003127a8e94667ab499062e5388",
+			"revisionTime": "2016-06-10T04:33:31Z"
+		},
+		{
+			"checksumSHA1": "RSi7QpjPy007TrhCkFk2XYYX/g8=",
+			"path": "github.com/dlintw/goconf",
+			"revision": "dcc070983490608a14480e3bf943bad464785df5",
+			"revisionTime": "2012-02-28T08:26:10Z"
+		},
+		{
+			"checksumSHA1": "AcrJctbyZbl9CfLV6hvtRCL5ftw=",
+			"path": "github.com/gorilla/websocket",
+			"revision": "4935ba31a2adbfcd9e08b86d2657659afbf1af9a",
+			"revisionTime": "2016-02-17T17:43:51Z"
+		},
+		{
+			"checksumSHA1": "uc0uxXNZZFRmG5fWVCg7D7BeV+4=",
+			"path": "github.com/wcharczuk/go-slack",
+			"revision": "4351de0c633f1e165cf13e484f53fe4e184fca7f",
+			"revisionTime": "2016-06-09T19:49:34Z"
+		}
+	],
+	"rootPath": "github.com/wcharczuk/jarvis"
+}
