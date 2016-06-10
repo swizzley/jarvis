@@ -146,7 +146,7 @@ func (rtm *Client) Connect() (*Session, error) {
 	}
 
 	if meta.StatusCode > http.StatusOK {
-		return exception.New("Non-200 Status from Slack, aborting.")
+		return nil, exception.New("Non-200 Status from Slack, aborting.")
 	}
 
 	//start socket connection
@@ -237,11 +237,11 @@ func (rtm *Client) Ping() error {
 func (rtm *Client) pingLoop() error {
 	var err error
 	for rtm.socketConnection != nil {
+		time.Sleep(rtm.pingInterval)
 		err = rtm.doPing()
 		if err != nil {
 			break
 		}
-		time.Sleep(rtm.pingInterval)
 	}
 	return nil
 }
