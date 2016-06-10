@@ -178,22 +178,6 @@ func (b *Bot) ActiveChannels() []string {
 
 // RegisterModule loads a given bot module
 func (b *Bot) RegisterModule(m core.BotModule) {
-	if b == nil {
-		println("RegisterModule `b` is <nil>")
-		return
-	}
-	if b.modules == nil {
-		println("RegisterModule `b.modules` is <nil>")
-		return
-	}
-	if m == nil {
-		println("RegisterModule `m` is <nil>")
-		return
-	}
-	if len(m.Name()) == 0 {
-		println("RegisterModule `m.Name()` is empty")
-		return
-	}
 	b.modules[m.Name()] = m
 }
 
