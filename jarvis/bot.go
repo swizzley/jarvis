@@ -273,12 +273,14 @@ func (b *Bot) Init() error {
 	b.client.AddEventListener(slack.EventHello, func(c *slack.Client, m *slack.Message) {
 		b.Log("slack is connected")
 	})
-	b.client.AddEventListener(slack.EventPing, func(c *slack.Client, m *slack.Message) {
-		b.Log("ping!")
-	})
-	b.client.AddEventListener(slack.EventPong, func(c *slack.Client, m *slack.Message) {
-		b.Log("pong!")
-	})
+	/*
+		b.client.AddEventListener(slack.EventPing, func(c *slack.Client, m *slack.Message) {
+			b.Log("ping!")
+		})
+		b.client.AddEventListener(slack.EventPong, func(c *slack.Client, m *slack.Message) {
+			b.Log("pong!")
+		})
+	*/
 	b.client.AddEventListener(slack.EventMessage, func(c *slack.Client, m *slack.Message) {
 		resErr := b.dispatchResponse(m)
 		if resErr != nil {

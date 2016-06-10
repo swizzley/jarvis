@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-request"
@@ -79,8 +78,9 @@ func NewExternalRequest() *request.HTTPRequest {
 		} else {
 			return false, nil, nil, nil
 		}
-	}).OnResponse(func(meta *request.HTTPResponseMeta, body []byte) {
-		fmt.Printf("%s - External Response Body: %s\n", time.Now().UTC().Format(time.RFC3339), string(body))
 	})
+	/*.OnResponse(func(meta *request.HTTPResponseMeta, body []byte) {
+		//fmt.Printf("%s - External Response Body: %s\n", time.Now().UTC().Format(time.RFC3339), string(body))
+	})*/
 	return req
 }

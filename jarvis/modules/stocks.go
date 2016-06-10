@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dustin/go-humanize"
+
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-util"
 	"github.com/wcharczuk/go-slack"
@@ -65,18 +67,45 @@ func (s *Stocks) announceStocks(b core.Bot, destinationID string, stockInfo []ex
 		tickersLabels = append(tickersLabels, fmt.Sprintf("`%s`", stock.Ticker))
 	}
 	tickersLabel := strings.Join(tickersLabels, " ")
-	stockText := fmt.Sprintf("current equity price info for %s\n", tickersLabel)
+	leadText := fmt.Sprintf("current equity price info for %s", tickersLabel)
+	message := slack.NewChatMessage(destinationID, leadText)
+	message.AsUser = slack.OptionalBool(true)
+	message.UnfurlLinks = slack.OptionalBool(false)
+	message.Parse = util.OptionalString("full")
 	for _, stock := range stockInfo {
 		if stock.Values != nil && len(stock.Values) > 3 {
 			if floatValue, isFloat := stock.Values[2].(float64); isFloat {
 				change := floatValue
-				changeText := fmt.Sprintf("%.2f", change)
 				changePct := stock.Values[3]
-				stockText = stockText + fmt.Sprintf("> `%s` - last: *%.2f* vol: *%d* ch: *%s* *%s*\n", stock.Ticker, stock.Values[0], int(stock.Values[1].(float64)), changeText, util.StripQuotes(changePct.(string)))
-			} else {
-				return exception.Newf("There was an issue with `%s`", stock.Ticker)
+
+				volume := int64(stock.Values[1].(float64))
+
+				tickerText := fmt.Sprintf("`%s`", stock.Ticker)
+				lastPriceText := fmt.Sprintf("%0.2f", stock.Values[0])
+				volumeText := humanize.Comma(volume)
+				changeText := fmt.Sprintf("%.2f", change)
+				changePctText := util.StripQuotes(changePct.(string))
+
+				var barColor = "#00FF00"
+				if change < 0 {
+					barColor = "#FF0000"
+				}
+
+				item := slack.ChatMessageAttachment{
+					Color: slack.OptionalString(barColor),
+					Fields: []slack.Field{
+						slack.Field{Title: "Ticker", Value: tickerText, Short: true},
+						slack.Field{Title: "Last", Value: lastPriceText, Short: true},
+						slack.Field{Title: "Volume", Value: volumeText, Short: true},
+						slack.Field{Title: "Change ∆", Value: changeText, Short: true},
+						slack.Field{Title: "Change %", Value: changePctText, Short: true},
+					},
+				}
+
+				message.Attachments = append(message.Attachments, item)
 			}
 		}
 	}
-	return b.Say(destinationID, stockText)
+	_, err := b.Client().ChatPostMessage(message)
+	return err
 }

@@ -53,6 +53,12 @@
 			"revisionTime": "2012-02-28T08:26:10Z"
 		},
 		{
+			"checksumSHA1": "ZhMh/JpDRBmU0InCx/hW45N31bM=",
+			"path": "github.com/dustin/go-humanize",
+			"revision": "499693e27ee0d14ffab67c31ad065fdb3d34ea75",
+			"revisionTime": "2016-06-03T05:58:03Z"
+		},
+		{
 			"checksumSHA1": "AcrJctbyZbl9CfLV6hvtRCL5ftw=",
 			"path": "github.com/gorilla/websocket",
 			"revision": "4935ba31a2adbfcd9e08b86d2657659afbf1af9a",
