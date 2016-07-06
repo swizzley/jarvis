@@ -127,7 +127,19 @@ func (s *Stocks) handleStockChart(b core.Bot, m *slack.Message) error {
 	if len(pieces) > 1 {
 		timeframe = pieces[1]
 	}
+	imageURL := fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=400&height=150&padding=5&format=png", ticker, timeframe)
 
-	text := fmt.Sprintf("https://chat-service.charczuk.com/stock/chart/%s/%s?width=400&height=150&padding=5", ticker, timeframe)
-	return b.Say(m.Channel, text)
+	leadText := fmt.Sprintf("Historical Chart for `%s`", ticker)
+	message := slack.NewChatMessage(m.Channel, leadText)
+	message.AsUser = slack.OptionalBool(true)
+	message.UnfurlLinks = slack.OptionalBool(false)
+	message.Parse = util.OptionalString("full")
+	message.Attachments = []slack.ChatMessageAttachment{
+		slack.ChatMessageAttachment{
+			Title:    util.OptionalString("Chart"),
+			ImageURL: util.OptionalString(imageURL),
+		},
+	}
+	_, err := b.Client().ChatPostMessage(message)
+	return err
 }
