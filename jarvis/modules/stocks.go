@@ -54,9 +54,12 @@ func (s *Stocks) handleStockPrice(b core.Bot, m *slack.Message) error {
 	} else {
 		tickers = []string{rawTicker}
 	}
-	stockInfo, err := external.StockPrice(tickers, external.StockDefaultFormat)
+	stockInfo, err := external.StockPrice(tickers)
 	if err != nil {
 		return err
+	}
+	if len(stockInfo) == 0 {
+		return b.Sayf(m.Channel, "No stock information returned for: `%s`", strings.Join(tickers, ", "))
 	}
 	return s.announceStocks(b, m.Channel, stockInfo)
 }
@@ -73,38 +76,34 @@ func (s *Stocks) announceStocks(b core.Bot, destinationID string, stockInfo []ex
 	message.UnfurlLinks = slack.OptionalBool(false)
 	message.Parse = util.OptionalString("full")
 	for _, stock := range stockInfo {
-		if stock.Values != nil && len(stock.Values) > 3 {
-			if floatValue, isFloat := stock.Values[2].(float64); isFloat {
-				change := floatValue
-				changePct := stock.Values[3]
+		change := stock.Change
+		changePct := stock.ChangePercent
+		volume := stock.Volume
+		tickerText := fmt.Sprintf("`%s`", stock.Ticker)
+		nameText := fmt.Sprintf("%s", stock.Name)
+		lastPriceText := fmt.Sprintf("%0.2f USD", stock.LastPrice)
+		volumeText := humanize.Comma(volume)
+		changeText := fmt.Sprintf("%.2f USD", change)
+		changePctText := util.StripQuotes(changePct)
 
-				volume := int64(stock.Values[1].(float64))
-
-				tickerText := fmt.Sprintf("`%s`", stock.Ticker)
-				lastPriceText := fmt.Sprintf("%0.2f", stock.Values[0])
-				volumeText := humanize.Comma(volume)
-				changeText := fmt.Sprintf("%.2f", change)
-				changePctText := util.StripQuotes(changePct.(string))
-
-				var barColor = "#00FF00"
-				if change < 0 {
-					barColor = "#FF0000"
-				}
-
-				item := slack.ChatMessageAttachment{
-					Color: slack.OptionalString(barColor),
-					Fields: []slack.Field{
-						slack.Field{Title: "Ticker", Value: tickerText, Short: true},
-						slack.Field{Title: "Last", Value: lastPriceText, Short: true},
-						slack.Field{Title: "Volume", Value: volumeText, Short: true},
-						slack.Field{Title: "Change ∆", Value: changeText, Short: true},
-						slack.Field{Title: "Change %", Value: changePctText, Short: true},
-					},
-				}
-
-				message.Attachments = append(message.Attachments, item)
-			}
+		var barColor = "#00FF00"
+		if change < 0 {
+			barColor = "#FF0000"
 		}
+
+		item := slack.ChatMessageAttachment{
+			Color: slack.OptionalString(barColor),
+			Fields: []slack.Field{
+				slack.Field{Title: "Ticker", Value: tickerText, Short: true},
+				slack.Field{Title: "Name", Value: nameText, Short: true},
+				slack.Field{Title: "Last", Value: lastPriceText, Short: true},
+				slack.Field{Title: "Volume", Value: volumeText, Short: true},
+				slack.Field{Title: "Change ∆", Value: changeText, Short: true},
+				slack.Field{Title: "Change %", Value: changePctText, Short: true},
+			},
+		}
+
+		message.Attachments = append(message.Attachments, item)
 	}
 	_, err := b.Client().ChatPostMessage(message)
 	return err
