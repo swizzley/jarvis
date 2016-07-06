@@ -19,6 +19,9 @@ const (
 
 	// ActionStockPrice is the action that queries a stocks price.
 	ActionStockPrice = "stock.price"
+
+	// ActionStockChart is the action that queries a stocks historical chart.
+	ActionStockChart = "stock.chart"
 )
 
 // Stocks is the module that does stocks things.
@@ -36,6 +39,7 @@ func (s *Stocks) Name() string {
 func (s *Stocks) Actions() []core.Action {
 	return []core.Action{
 		core.Action{ID: ActionStockPrice, MessagePattern: "^stock:price", Description: "Fetches the current price and volume for a given ticker.", Handler: s.handleStockPrice},
+		core.Action{ID: ActionStockChart, MessagePattern: "^stock:chart", Description: "Fetches the current price chart for a given ticker.", Handler: s.handleStockChart},
 	}
 }
 
@@ -107,4 +111,23 @@ func (s *Stocks) announceStocks(b core.Bot, destinationID string, stockInfo []ex
 	}
 	_, err := b.Client().ChatPostMessage(message)
 	return err
+}
+
+func (s *Stocks) handleStockChart(b core.Bot, m *slack.Message) error {
+	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	args := core.ExtractSubMatches(messageWithoutMentions, "^stock:chart (.*)")
+
+	if len(args) < 2 {
+		return exception.Newf("invalid input for %s", ActionStockPrice)
+	}
+
+	pieces := strings.Split(args[1], " ")
+	ticker := pieces[0]
+	timeframe := "1M"
+	if len(pieces) > 1 {
+		timeframe = pieces[1]
+	}
+
+	text := fmt.Sprintf("https://chat-service.charczuk.com/stock/chart/%s/%s?width=400&height=150&padding=5", ticker, timeframe)
+	return b.Say(m.Channel, text)
 }
