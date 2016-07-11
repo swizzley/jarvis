@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -127,7 +128,16 @@ func (s *Stocks) handleStockChart(b core.Bot, m *slack.Message) error {
 	if len(pieces) > 1 {
 		timeframe = pieces[1]
 	}
-	imageURL := fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=400&height=150&format=png", ticker, timeframe)
+	var imageURL string
+	if strings.Contains(ticker, "+") {
+		tickerPieces := strings.Split(ticker, "+")
+		if len(tickerPieces) < 2 {
+			return errors.New("invalid combination ticker")
+		}
+		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=1024&height=400&format=png&compare=%s", tickerPieces[0], timeframe, tickerPieces[1])
+	} else {
+		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=1024&height=400&format=png", ticker, timeframe)
+	}
 
 	leadText := fmt.Sprintf("Historical Chart for `%s`", ticker)
 	message := slack.NewChatMessage(m.Channel, leadText)
