@@ -68,7 +68,7 @@ func (si *StockInfo) Parse(line string) error {
 	}()
 	lookup := reverseIndexMap()
 	fieldLookup := fieldIndexMap()
-	parts := strings.Split(line, ",")
+	parts := core.StringSplitQuoteAware(line, rune(','))
 	if len(parts) != len(lookup) {
 		return errors.New("mismatched line components to lookup map, cannot continue")
 	}
