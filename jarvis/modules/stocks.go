@@ -134,9 +134,9 @@ func (s *Stocks) handleStockChart(b core.Bot, m *slack.Message) error {
 		if len(tickerPieces) < 2 {
 			return errors.New("invalid combination ticker")
 		}
-		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=1024&height=400&format=png&compare=%s", tickerPieces[0], timeframe, tickerPieces[1])
+		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=768&height=280&format=png&compare=%s", tickerPieces[0], timeframe, tickerPieces[1])
 	} else {
-		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=1024&height=400&format=png", ticker, timeframe)
+		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=768&height=280&format=png", ticker, timeframe)
 	}
 
 	leadText := fmt.Sprintf("Historical Chart for `%s`", ticker)
