@@ -136,7 +136,7 @@ func (s *Stocks) handleStockChart(b core.Bot, m *slack.Message) error {
 		}
 		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=768&height=280&use_pct=true&add_sma=true&format=png&compare=%s", tickerPieces[0], timeframe, tickerPieces[1])
 	} else {
-		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=768&height=280&use_pct=true&add_sma=true&format=png", ticker, timeframe)
+		imageURL = fmt.Sprintf("https://chart-service.charczuk.com/stock/chart/%s/%s?width=768&height=280&add_sma=true&format=png", ticker, timeframe)
 	}
 
 	leadText := fmt.Sprintf("Historical Chart for `%s`", ticker)
