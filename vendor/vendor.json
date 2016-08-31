@@ -1,9 +1,9 @@
 {
 	"ImportPath": "github.com/wcharczuk/jarvis",
 	"comment": "Jarvis is a bot framework for slack that leverages `go-slack`.",
-	"goVersion": "go1.6",
+	"goVersion": "go1.7",
 	"heroku": {
-		"goVersion": "go1.6",
+		"goVersion": "go1.7",
 		"install": [
 			"."
 		]
