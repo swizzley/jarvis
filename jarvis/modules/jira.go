@@ -107,7 +107,7 @@ func (j *Jira) handleJira(b core.Bot, m *slack.Message) error {
 	message.AsUser = slack.OptionalBool(true)
 	message.UnfurlLinks = slack.OptionalBool(false)
 	for _, issue := range issues {
-		if !util.IsEmpty(issue.Key) {
+		if !util.String.IsEmpty(issue.Key) {
 			var itemText string
 			if issue.Fields != nil {
 				assignee := "Unassigned"

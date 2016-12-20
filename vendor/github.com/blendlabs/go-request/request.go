@@ -8,28 +8,97 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
-	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/blendlabs/go-exception"
+	logger "github.com/blendlabs/go-logger"
 	"github.com/blendlabs/go-util"
 )
 
 const (
-	// HTTPRequestLogLevelErrors writes only errors to the log.
-	HTTPRequestLogLevelErrors = 1
-	// HTTPRequestLogLevelVerbose writes lots of messages to the log.
-	HTTPRequestLogLevelVerbose = 2
-	//HTTPRequestLogLevelDebug writes more information to the log.
-	HTTPRequestLogLevelDebug = 3
-	// HTTPRequestLogLevelOver9000 writes everything to the log.
-	HTTPRequestLogLevelOver9000 = 9001
+	// Event is a diagnostics agent event flag.
+	Event logger.EventFlag = "request"
+	// EventResponse is a diagnostics agent event flag.
+	EventResponse logger.EventFlag = "request.response"
 )
+
+// NewOutgoingListener creates a new logger handler for `EventFlagOutgoingResponse` events.
+func NewOutgoingListener(handler func(writer logger.Logger, ts logger.TimeSource, req *HTTPRequestMeta)) logger.EventListener {
+	return func(writer logger.Logger, ts logger.TimeSource, eventFlag logger.EventFlag, state ...interface{}) {
+		handler(writer, ts, state[0].(*HTTPRequestMeta))
+	}
+}
+
+// WriteOutgoingRequest is a helper method to write outgoing request events to a logger writer.
+func WriteOutgoingRequest(writer logger.Logger, ts logger.TimeSource, req *HTTPRequestMeta) {
+	buffer := writer.GetBuffer()
+	defer writer.PutBuffer(buffer)
+	buffer.WriteString(writer.Colorize(string(Event), logger.ColorGreen))
+	buffer.WriteRune(logger.RuneSpace)
+	buffer.WriteString(fmt.Sprintf("%s %s", req.Verb, req.URL.String()))
+	writer.WriteWithTimeSource(ts, buffer.Bytes())
+}
+
+// NewOutgoingResponseListener creates a new logger handler for `EventFlagOutgoingResponse` events.
+func NewOutgoingResponseListener(handler func(writer logger.Logger, ts logger.TimeSource, req *HTTPRequestMeta, res *HTTPResponseMeta, body []byte)) logger.EventListener {
+	return func(writer logger.Logger, ts logger.TimeSource, eventFlag logger.EventFlag, state ...interface{}) {
+		handler(writer, ts, state[0].(*HTTPRequestMeta), state[1].(*HTTPResponseMeta), state[2].([]byte))
+	}
+}
+
+// WriteOutgoingRequestResponse is a helper method to write outgoing request response events to a logger writer.
+func WriteOutgoingRequestResponse(writer logger.Logger, ts logger.TimeSource, req *HTTPRequestMeta, res *HTTPResponseMeta, body []byte) {
+	buffer := writer.GetBuffer()
+	defer writer.PutBuffer(buffer)
+	buffer.WriteString(writer.Colorize(string(EventResponse), logger.ColorGreen))
+	buffer.WriteRune(logger.RuneSpace)
+	buffer.WriteString(fmt.Sprintf("%s %s %s", writer.ColorizeByStatusCode(res.StatusCode, strconv.Itoa(res.StatusCode)), req.Verb, req.URL.String()))
+	buffer.WriteRune(logger.RuneNewline)
+	buffer.Write(body)
+	writer.WriteWithTimeSource(ts, buffer.Bytes())
+}
+
+//--------------------------------------------------------------------------------
+// HTTPRequestMeta
+//--------------------------------------------------------------------------------
+
+// NewHTTPRequestMeta returns a new meta object for a request.
+func NewHTTPRequestMeta(req *http.Request) *HTTPRequestMeta {
+	return &HTTPRequestMeta{
+		Verb:    req.Method,
+		URL:     req.URL,
+		Headers: req.Header,
+	}
+}
+
+// NewHTTPRequestMetaWithBody returns a new meta object for a request and reads the body.
+func NewHTTPRequestMetaWithBody(req *http.Request) (*HTTPRequestMeta, error) {
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer req.Body.Close()
+	return &HTTPRequestMeta{
+		Verb:    req.Method,
+		URL:     req.URL,
+		Headers: req.Header,
+		Body:    body,
+	}, nil
+}
+
+// HTTPRequestMeta is a summary of the request meta useful for logging.
+type HTTPRequestMeta struct {
+	StartTime time.Time
+	Verb      string
+	URL       *url.URL
+	Headers   http.Header
+	Body      []byte
+}
 
 //--------------------------------------------------------------------------------
 // HttpResponseMeta
@@ -43,6 +112,7 @@ func NewHTTPResponseMeta(res *http.Response) *HTTPResponseMeta {
 		return meta
 	}
 
+	meta.CompleteTime = time.Now().UTC()
 	meta.StatusCode = res.StatusCode
 	meta.ContentLength = res.ContentLength
 
@@ -60,16 +130,9 @@ func NewHTTPResponseMeta(res *http.Response) *HTTPResponseMeta {
 	return meta
 }
 
-// HTTPRequestMeta is a summary of the request meta useful for logging.
-type HTTPRequestMeta struct {
-	Verb    string
-	URL     *url.URL
-	Headers http.Header
-	Body    []byte
-}
-
 // HTTPResponseMeta is just the meta information for an http response.
 type HTTPResponseMeta struct {
+	CompleteTime    time.Time
 	StatusCode      int
 	ContentLength   int64
 	ContentEncoding string
@@ -81,7 +144,10 @@ type HTTPResponseMeta struct {
 type CreateTransportHandler func(host *url.URL, transport *http.Transport)
 
 // ResponseHandler is a receiver for `OnResponse`.
-type ResponseHandler func(meta *HTTPResponseMeta, content []byte)
+type ResponseHandler func(req *HTTPRequestMeta, meta *HTTPResponseMeta, content []byte)
+
+// StatefulResponseHandler is a receiver for `OnResponse` that includes a state object.
+type StatefulResponseHandler func(req *HTTPRequestMeta, res *HTTPResponseMeta, content []byte, state interface{})
 
 // OutgoingRequestHandler is a receiver for `OnRequest`.
 type OutgoingRequestHandler func(req *HTTPRequestMeta)
@@ -94,6 +160,29 @@ type Deserializer func(body []byte) error
 
 // Serializer is a function that turns an object into raw data.
 type Serializer func(value interface{}) ([]byte, error)
+
+//--------------------------------------------------------------------------------
+// PostedFile
+//--------------------------------------------------------------------------------
+
+// PostedFile represents a file to post with the request.
+type PostedFile struct {
+	Key          string
+	FileName     string
+	FileContents io.Reader
+}
+
+//--------------------------------------------------------------------------------
+// Buffer
+//--------------------------------------------------------------------------------
+
+// Buffer is a type that supplies two methods found on bytes.Buffer.
+type Buffer interface {
+	Write([]byte) (int, error)
+	Len() int64
+	ReadFrom(io.ReadCloser) (int64, error)
+	Bytes() []byte
+}
 
 //--------------------------------------------------------------------------------
 // HTTPRequest
@@ -110,39 +199,53 @@ func NewHTTPRequest() *HTTPRequest {
 
 // HTTPRequest makes http requests.
 type HTTPRequest struct {
-	Scheme            string
-	Host              string
-	Path              string
-	QueryString       url.Values
-	Header            http.Header
-	PostData          url.Values
-	Cookies           []*http.Cookie
-	BasicAuthUsername string
-	BasicAuthPassword string
-	Verb              string
-	ContentType       string
-	Timeout           time.Duration
-	TLSCertPath       string
-	TLSKeyPath        string
-	Body              []byte
-	KeepAlive         bool
+	Scheme              string
+	Host                string
+	Path                string
+	QueryString         url.Values
+	Header              http.Header
+	PostData            url.Values
+	Cookies             []*http.Cookie
+	BasicAuthUsername   string
+	BasicAuthPassword   string
+	Verb                string
+	ContentType         string
+	Timeout             time.Duration
+	TLSCertPath         string
+	TLSKeyPath          string
+	SkipTLSVerification bool
+	Body                []byte
+	KeepAlive           bool
 
 	Label string
 
-	Logger   *log.Logger
-	LogLevel int
+	diagnostics *logger.DiagnosticsAgent
 
-	transport *http.Transport
+	state interface{}
 
-	createTransportHandler  CreateTransportHandler
-	incomingResponseHandler ResponseHandler
-	outgoingRequestHandler  OutgoingRequestHandler
-	mockHandler             MockedResponseHandler
+	postedFiles []PostedFile
+
+	responseBuffer Buffer
+
+	requestStart time.Time
+
+	transport                       *http.Transport
+	createTransportHandler          CreateTransportHandler
+	incomingResponseHandler         ResponseHandler
+	statefulIncomingResponseHandler StatefulResponseHandler
+	outgoingRequestHandler          OutgoingRequestHandler
+	mockHandler                     MockedResponseHandler
 }
 
 // OnResponse configures an event receiver.
 func (hr *HTTPRequest) OnResponse(hook ResponseHandler) *HTTPRequest {
 	hr.incomingResponseHandler = hook
+	return hr
+}
+
+// OnResponseStateful configures an event receiver that includes the request state.
+func (hr *HTTPRequest) OnResponseStateful(hook StatefulResponseHandler) *HTTPRequest {
+	hr.statefulIncomingResponseHandler = hook
 	return hr
 }
 
@@ -158,9 +261,21 @@ func (hr *HTTPRequest) OnRequest(hook OutgoingRequestHandler) *HTTPRequest {
 	return hr
 }
 
+// WithState adds a state object to the request for later usage.
+func (hr *HTTPRequest) WithState(state interface{}) *HTTPRequest {
+	hr.state = state
+	return hr
+}
+
 // WithLabel gives the request a logging label.
 func (hr *HTTPRequest) WithLabel(label string) *HTTPRequest {
 	hr.Label = label
+	return hr
+}
+
+// ShouldSkipTLSVerification skips the bad certificate checking on TLS requests.
+func (hr *HTTPRequest) ShouldSkipTLSVerification() *HTTPRequest {
+	hr.SkipTLSVerification = true
 	return hr
 }
 
@@ -170,56 +285,15 @@ func (hr *HTTPRequest) WithMockedResponse(hook MockedResponseHandler) *HTTPReque
 	return hr
 }
 
-// WithLogging enables logging with HTTPRequestLogLevelErrors.
-func (hr *HTTPRequest) WithLogging() *HTTPRequest {
-	hr.LogLevel = HTTPRequestLogLevelErrors
-	hr.Logger = log.New(os.Stdout, "", 0) // no error prefix
+// WithDiagnostics enables logging with HTTPRequestLogLevelErrors.
+func (hr *HTTPRequest) WithDiagnostics(agent *logger.DiagnosticsAgent) *HTTPRequest {
+	hr.diagnostics = agent
 	return hr
 }
 
-// WithLogLevel sets a log level filter for the request.
-func (hr *HTTPRequest) WithLogLevel(logLevel int) *HTTPRequest {
-	hr.LogLevel = logLevel
-	return hr
-}
-
-// WithLogger provides a logLevel and a logger for the request.
-func (hr *HTTPRequest) WithLogger(logLevel int, logger *log.Logger) *HTTPRequest {
-	hr.LogLevel = logLevel
-	hr.Logger = logger
-	return hr
-}
-
-func (hr *HTTPRequest) fatalf(logLevel int, format string, args ...interface{}) {
-	if hr.Logger != nil && logLevel <= hr.LogLevel {
-		prefix := getLoggingPrefix(logLevel)
-		hr.Logger.Fatalf(prefix+format, args...)
-	}
-}
-
-func (hr *HTTPRequest) fatal(logLevel int, args ...interface{}) {
-	if hr.Logger != nil && logLevel <= hr.LogLevel {
-		prefix := getLoggingPrefix(logLevel)
-		message := fmt.Sprint(args...)
-		fullMessage := fmt.Sprintf("%s%s", prefix, message)
-		hr.Logger.Fatalln(fullMessage)
-	}
-}
-
-func (hr *HTTPRequest) logf(logLevel int, format string, args ...interface{}) {
-	if hr.Logger != nil && logLevel <= hr.LogLevel {
-		prefix := getLoggingPrefix(logLevel)
-		hr.Logger.Printf(prefix+format, args...)
-	}
-}
-
-func (hr *HTTPRequest) log(logLevel int, args ...interface{}) {
-	if hr.Logger != nil && logLevel <= hr.LogLevel {
-		prefix := getLoggingPrefix(logLevel)
-		message := fmt.Sprint(args...)
-		fullMessage := fmt.Sprintf("%s%s", prefix, message)
-		hr.Logger.Println(fullMessage)
-	}
+// Diagnostics returns the request diagnostics agent.
+func (hr *HTTPRequest) Diagnostics() *logger.DiagnosticsAgent {
+	return hr.diagnostics
 }
 
 // WithTransport sets a transport for the request.
@@ -267,7 +341,7 @@ func (hr *HTTPRequest) WithPathf(format string, args ...interface{}) *HTTPReques
 
 // WithCombinedPath sets the path component of the host url by combining the input path segments.
 func (hr *HTTPRequest) WithCombinedPath(components ...string) *HTTPRequest {
-	hr.Path = util.CombinePathComponents(components...)
+	hr.Path = util.String.CombinePathComponents(components...)
 	return hr
 }
 
@@ -329,12 +403,18 @@ func (hr *HTTPRequest) WithPostData(field string, value string) *HTTPRequest {
 // Remarks; this differs from `WithJSONBody` in that it sets individual post form fields
 // for each member of the object.
 func (hr *HTTPRequest) WithPostDataFromObject(object interface{}) *HTTPRequest {
-	postDatums := util.DecomposeToPostDataAsJSON(object)
+	postDatums := util.Reflection.DecomposeToPostDataAsJSON(object)
 
 	for _, item := range postDatums {
 		hr.WithPostData(item.Key, item.Value)
 	}
 
+	return hr
+}
+
+// WithPostedFile adds a posted file to the multipart form elements of the request.
+func (hr *HTTPRequest) WithPostedFile(key, fileName string, fileContents io.Reader) *HTTPRequest {
+	hr.postedFiles = append(hr.postedFiles, PostedFile{Key: key, FileName: fileName, FileContents: fileContents})
 	return hr
 }
 
@@ -400,6 +480,12 @@ func (hr *HTTPRequest) AsDelete() *HTTPRequest {
 	return hr
 }
 
+// WithResponseBuffer sets the response buffer for the request (if you want to re-use one).
+func (hr *HTTPRequest) WithResponseBuffer(buffer Buffer) *HTTPRequest {
+	hr.responseBuffer = buffer
+	return hr
+}
+
 // WithJSONBody sets the post body raw to be the json representation of an object.
 func (hr *HTTPRequest) WithJSONBody(object interface{}) *HTTPRequest {
 	return hr.WithSerializedBody(object, serializeJSON).WithContentType("application/json")
@@ -410,7 +496,7 @@ func (hr *HTTPRequest) WithXMLBody(object interface{}) *HTTPRequest {
 	return hr.WithSerializedBody(object, serializeXML).WithContentType("application/xml")
 }
 
-// WithBody sets the post body with the results of the given serializer.
+// WithSerializedBody sets the post body with the results of the given serializer.
 func (hr *HTTPRequest) WithSerializedBody(object interface{}, serialize Serializer) *HTTPRequest {
 	body, _ := serialize(object)
 	return hr.WithRawBody(body)
@@ -429,12 +515,14 @@ func (hr *HTTPRequest) CreateURL() *url.URL {
 	return workingURL
 }
 
-func (hr *HTTPRequest) RequestMeta() *HTTPRequestMeta {
+// AsRequestMeta returns the request as a HTTPRequestMeta.
+func (hr *HTTPRequest) AsRequestMeta() *HTTPRequestMeta {
 	return &HTTPRequestMeta{
-		Verb:    hr.Verb,
-		URL:     hr.CreateURL(),
-		Body:    hr.RequestBody(),
-		Headers: hr.Headers(),
+		StartTime: hr.requestStart,
+		Verb:      hr.Verb,
+		URL:       hr.CreateURL(),
+		Body:      hr.RequestBody(),
+		Headers:   hr.Headers(),
 	}
 }
 
@@ -448,6 +536,7 @@ func (hr *HTTPRequest) RequestBody() []byte {
 	return nil
 }
 
+// Headers returns the headers on the request.
 func (hr *HTTPRequest) Headers() http.Header {
 	headers := http.Header{}
 	for key, values := range hr.Header {
@@ -546,14 +635,57 @@ func (hr *HTTPRequest) Execute() error {
 // ExecuteWithMeta makes the request and returns the meta of the response.
 func (hr *HTTPRequest) ExecuteWithMeta() (*HTTPResponseMeta, error) {
 	res, err := hr.FetchRawResponse()
-	if res != nil && res.Body != nil {
-		closeErr := res.Body.Close()
-		if closeErr != nil {
-			return nil, exception.WrapMany(exception.Wrap(err), exception.Wrap(closeErr))
-		}
+	if err != nil {
+		return nil, exception.Wrap(err)
 	}
 	meta := NewHTTPResponseMeta(res)
-	return meta, exception.Wrap(err)
+	if res != nil && res.Body != nil {
+		defer res.Body.Close()
+		if hr.responseBuffer != nil {
+			contentLength, err := hr.responseBuffer.ReadFrom(res.Body)
+			if err != nil {
+				return nil, exception.Wrap(err)
+			}
+			meta.ContentLength = contentLength
+			if hr.incomingResponseHandler != nil {
+				hr.logResponse(meta, hr.responseBuffer.Bytes(), hr.state)
+			}
+		} else {
+			contents, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				return nil, exception.Wrap(err)
+			}
+			meta.ContentLength = int64(len(contents))
+			hr.logResponse(meta, contents, hr.state)
+		}
+	}
+
+	return meta, nil
+}
+
+// FetchBytesWithMeta fetches the response as bytes with meta.
+func (hr *HTTPRequest) FetchBytesWithMeta() ([]byte, *HTTPResponseMeta, error) {
+	res, err := hr.FetchRawResponse()
+	resMeta := NewHTTPResponseMeta(res)
+	if err != nil {
+		return nil, resMeta, exception.Wrap(err)
+	}
+	defer res.Body.Close()
+
+	bytes, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		return nil, resMeta, exception.Wrap(readErr)
+	}
+
+	resMeta.ContentLength = int64(len(bytes))
+	hr.logResponse(resMeta, bytes, hr.state)
+	return bytes, resMeta, nil
+}
+
+// FetchBytes fetches the response as bytes.
+func (hr *HTTPRequest) FetchBytes() ([]byte, error) {
+	contents, _, err := hr.FetchBytesWithMeta()
+	return contents, err
 }
 
 // FetchString returns the body of the response as a string.
@@ -564,21 +696,8 @@ func (hr *HTTPRequest) FetchString() (string, error) {
 
 // FetchStringWithMeta returns the body of the response as a string in addition to the response metadata.
 func (hr *HTTPRequest) FetchStringWithMeta() (string, *HTTPResponseMeta, error) {
-	res, err := hr.FetchRawResponse()
-	meta := NewHTTPResponseMeta(res)
-	if err != nil {
-		return util.StringEmpty, meta, exception.Wrap(err)
-	}
-	defer res.Body.Close()
-
-	bytes, readErr := ioutil.ReadAll(res.Body)
-	if readErr != nil {
-		return util.StringEmpty, meta, exception.Wrap(readErr)
-	}
-
-	meta.ContentLength = int64(len(bytes))
-	hr.logResponse(meta, bytes)
-	return string(bytes), meta, nil
+	contents, meta, err := hr.FetchBytesWithMeta()
+	return string(contents), meta, err
 }
 
 // FetchJSONToObject unmarshals the response as json to an object.
@@ -627,19 +746,21 @@ func (hr *HTTPRequest) FetchObjectWithSerializer(deserialize Deserializer) (*HTT
 }
 
 func (hr *HTTPRequest) requiresCustomTransport() bool {
-	return (!isEmpty(hr.TLSCertPath) && !isEmpty(hr.TLSKeyPath)) || hr.transport != nil || hr.createTransportHandler != nil
+	return (!isEmpty(hr.TLSCertPath) && !isEmpty(hr.TLSKeyPath)) ||
+		hr.transport != nil ||
+		hr.createTransportHandler != nil ||
+		hr.SkipTLSVerification
 }
 
 func (hr *HTTPRequest) getHTTPTransport() (*http.Transport, error) {
 	if hr.transport != nil {
-		hr.log(HTTPRequestLogLevelDebug, "Service Request ==> Using Provided Transport\n")
 		return hr.transport, nil
 	}
-	return hr.createHTTPTransport()
+	return hr.CreateHTTPTransport()
 }
 
-func (hr *HTTPRequest) createHTTPTransport() (*http.Transport, error) {
-	hr.log(HTTPRequestLogLevelDebug, "Service Request ==> Creating Custom Transport\n")
+// CreateHTTPTransport returns the the custom transport for the request.
+func (hr *HTTPRequest) CreateHTTPTransport() (*http.Transport, error) {
 	transport := &http.Transport{
 		DisableCompression: false,
 		DisableKeepAlives:  !hr.KeepAlive,
@@ -650,12 +771,10 @@ func (hr *HTTPRequest) createHTTPTransport() (*http.Transport, error) {
 		dialer.Timeout = hr.Timeout
 	}
 	if hr.KeepAlive {
-		hr.logf(HTTPRequestLogLevelDebug, "Service Request ==> Transport Enabled For `keep-alive` %v\n", 30*time.Second)
 		dialer.KeepAlive = 30 * time.Second
 	}
 
 	loggedDialer := func(network, address string) (net.Conn, error) {
-		hr.logf(HTTPRequestLogLevelDebug, "Service Request ==> Transport Is Dialing %s\n", address)
 		return dialer.Dial(network, address)
 	}
 	transport.Dial = loggedDialer
@@ -666,7 +785,13 @@ func (hr *HTTPRequest) createHTTPTransport() (*http.Transport, error) {
 			return nil, exception.Wrap(err)
 		}
 		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{cert},
+			InsecureSkipVerify: hr.SkipTLSVerification,
+			Certificates:       []tls.Certificate{cert},
+		}
+		transport.TLSClientConfig = tlsConfig
+	} else {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: hr.SkipTLSVerification,
 		}
 		transport.TLSClientConfig = tlsConfig
 	}
@@ -693,7 +818,7 @@ func (hr *HTTPRequest) deserialize(handler Deserializer) (*HTTPResponseMeta, err
 	}
 
 	meta.ContentLength = int64(len(body))
-	hr.logResponse(meta, body)
+	hr.logResponse(meta, body, hr.state)
 	if handler != nil {
 		err = handler(body)
 	}
@@ -715,7 +840,7 @@ func (hr *HTTPRequest) deserializeWithError(okHandler Deserializer, errorHandler
 	}
 
 	meta.ContentLength = int64(len(body))
-	hr.logResponse(meta, body)
+	hr.logResponse(meta, body, hr.state)
 	if res.StatusCode == http.StatusOK {
 		if okHandler != nil {
 			err = okHandler(body)
@@ -727,18 +852,29 @@ func (hr *HTTPRequest) deserializeWithError(okHandler Deserializer, errorHandler
 }
 
 func (hr *HTTPRequest) logRequest() {
-	meta := hr.RequestMeta()
+	hr.requestStart = time.Now().UTC()
+
+	meta := hr.AsRequestMeta()
 	if hr.outgoingRequestHandler != nil {
 		hr.outgoingRequestHandler(meta)
 	}
-	hr.logf(HTTPRequestLogLevelVerbose, "Service Request ==> %s %s\n", meta.Verb, meta.URL.String())
+
+	if hr.diagnostics != nil {
+		hr.diagnostics.OnEvent(Event, meta)
+	}
 }
 
-func (hr *HTTPRequest) logResponse(meta *HTTPResponseMeta, responseBody []byte) {
-	if hr.incomingResponseHandler != nil {
-		hr.incomingResponseHandler(meta, responseBody)
+func (hr *HTTPRequest) logResponse(resMeta *HTTPResponseMeta, responseBody []byte, state interface{}) {
+	if hr.statefulIncomingResponseHandler != nil {
+		hr.statefulIncomingResponseHandler(hr.AsRequestMeta(), resMeta, responseBody, state)
 	}
-	hr.logf(HTTPRequestLogLevelVerbose, "Service Response ==> %s", responseBody)
+	if hr.incomingResponseHandler != nil {
+		hr.incomingResponseHandler(hr.AsRequestMeta(), resMeta, responseBody)
+	}
+
+	if hr.diagnostics != nil {
+		hr.diagnostics.OnEvent(EventResponse, hr.AsRequestMeta(), resMeta, responseBody, state)
+	}
 }
 
 //--------------------------------------------------------------------------------
@@ -798,23 +934,6 @@ func serializeXMLToReader(object interface{}) (io.Reader, error) {
 	encoder := xml.NewEncoder(buf)
 	err := encoder.Encode(object)
 	return buf, err
-}
-
-func getLoggingPrefix(logLevel int) string {
-	return fmt.Sprintf("HttpRequest (%s): ", formatLogLevel(logLevel))
-}
-
-func formatLogLevel(logLevel int) string {
-	switch logLevel {
-	case HTTPRequestLogLevelErrors:
-		return "ERRORS"
-	case HTTPRequestLogLevelVerbose:
-		return "VERBOSE"
-	case HTTPRequestLogLevelDebug:
-		return "DEBUG"
-	default:
-		return "UNKNOWN"
-	}
 }
 
 func isEmpty(str string) bool {

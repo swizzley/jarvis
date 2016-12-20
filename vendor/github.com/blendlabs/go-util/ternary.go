@@ -1,33 +1,64 @@
 package util
 
-// Ternary returns one of the given values upon a bool.
-func Ternary(condition bool, ifTrue, ifFalse interface{}) interface{} {
+import "time"
+
+// Ternary is a collection of ternary functions.
+var Ternary = ternaryUtil{}
+
+type ternaryUtil struct{}
+
+func (tu *ternaryUtil) OfRune(condition bool, trueResult, falseResult rune) rune {
 	if condition {
-		return ifTrue
+		return trueResult
 	}
-	return ifFalse
+	return falseResult
 }
 
-// TernaryOfString returns one of the given values upon a bool.
-func TernaryOfString(condition bool, ifTrue, ifFalse string) string {
+func (tu *ternaryUtil) OfBytes(condition bool, trueResult, falseResult []byte) []byte {
 	if condition {
-		return ifTrue
+		return trueResult
 	}
-	return ifFalse
+	return falseResult
 }
 
-// TernaryOfInt returns one of the given values upon a bool.
-func TernaryOfInt(condition bool, ifTrue, ifFalse int) int {
+func (tu *ternaryUtil) OfInt(condition bool, trueResult, falseResult int) int {
 	if condition {
-		return ifTrue
+		return trueResult
 	}
-	return ifFalse
+	return falseResult
 }
 
-// TernaryOfFloat returns one of the given values upon a bool.
-func TernaryOfFloat(condition bool, ifTrue, ifFalse float64) float64 {
+func (tu *ternaryUtil) OfInt64(condition bool, trueResult, falseResult int64) int64 {
 	if condition {
-		return ifTrue
+		return trueResult
 	}
-	return ifFalse
+	return falseResult
+}
+
+func (tu *ternaryUtil) OfFloat64(condition bool, trueResult, falseResult float64) float64 {
+	if condition {
+		return trueResult
+	}
+	return falseResult
+}
+
+func (tu *ternaryUtil) OfTime(condition bool, trueResult, falseResult time.Time) time.Time {
+	if condition {
+		return trueResult
+	}
+	return falseResult
+}
+
+func (tu *ternaryUtil) OfDuration(condition bool, trueResult, falseResult time.Duration) time.Duration {
+	if condition {
+		return trueResult
+	}
+	return falseResult
+}
+
+func (tu *ternaryUtil) OfString(condition bool, trueResult, falseResult string) string {
+	if condition {
+		return trueResult
+	}
+	return falseResult
 }

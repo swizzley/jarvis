@@ -153,7 +153,7 @@ func (c *Core) handleSalutation(b core.Bot, m *slack.Message) error {
 }
 
 func (c *Core) handleMentionCatchAll(b core.Bot, m *slack.Message) error {
-	message := util.TrimWhitespace(core.LessMentions(m.Text))
+	message := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	if core.IsSalutation(message) {
 		return c.handleSalutation(b, m)
 	}
@@ -161,7 +161,7 @@ func (c *Core) handleMentionCatchAll(b core.Bot, m *slack.Message) error {
 }
 
 func (c *Core) handlePassiveCatchAll(b core.Bot, m *slack.Message) error {
-	message := util.TrimWhitespace(core.LessMentions(m.Text))
+	message := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	if optionValue, hasOption := b.Configuration()[ConfigOptionPassiveCatchAll]; hasOption && optionValue == "true" {
 		if core.IsAngry(message) {
 			user := b.FindUser(m.User)

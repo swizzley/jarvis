@@ -70,7 +70,7 @@ func (j *Jobs) handleJobsStatus(b core.Bot, m *slack.Message) error {
 }
 
 func (j *Jobs) handleJobRun(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
 		jobName := pieces[len(pieces)-1]
@@ -83,7 +83,7 @@ func (j *Jobs) handleJobRun(b core.Bot, m *slack.Message) error {
 }
 
 func (j *Jobs) handleJobCancel(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
 		taskName := pieces[len(pieces)-1]
@@ -94,7 +94,7 @@ func (j *Jobs) handleJobCancel(b core.Bot, m *slack.Message) error {
 }
 
 func (j *Jobs) handleJobEnable(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
 		taskName := pieces[len(pieces)-1]
@@ -105,7 +105,7 @@ func (j *Jobs) handleJobEnable(b core.Bot, m *slack.Message) error {
 }
 
 func (j *Jobs) handleJobDisable(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	pieces := strings.Split(messageWithoutMentions, " ")
 	if len(pieces) > 1 {
 		taskName := pieces[len(pieces)-1]

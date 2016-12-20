@@ -45,7 +45,7 @@ func (s *Stocks) Actions() []core.Action {
 }
 
 func (s *Stocks) handleStockPrice(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	pieces := core.ExtractSubMatches(messageWithoutMentions, "^stock:price (.*)")
 
 	if len(pieces) < 2 {
@@ -89,7 +89,7 @@ func (s *Stocks) announceStocks(b core.Bot, destinationID string, stockInfo []ex
 		lastPriceText := fmt.Sprintf("%0.2f USD", stock.LastPrice)
 		volumeText := humanize.Comma(volume)
 		changeText := fmt.Sprintf("%.2f USD", change)
-		changePctText := util.StripQuotes(changePct)
+		changePctText := util.String.StripQuotes(changePct)
 
 		var barColor = "#00FF00"
 		if change < 0 {
@@ -115,7 +115,7 @@ func (s *Stocks) announceStocks(b core.Bot, destinationID string, stockInfo []ex
 }
 
 func (s *Stocks) handleStockChart(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	args := core.ExtractSubMatches(messageWithoutMentions, "^stock:chart (.*)")
 
 	if len(args) < 2 {

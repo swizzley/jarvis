@@ -14,54 +14,6 @@ var (
 	BooleanFalse Boolean = false
 )
 
-// KeyValuePair is a pair of key and value.
-type KeyValuePair struct {
-	Key   string
-	Value interface{}
-}
-
-// KVP is a pair of key and value.
-type KVP struct {
-	K string
-	V interface{}
-}
-
-// KeyValuePairOfInt is a pair of key and value.
-type KeyValuePairOfInt struct {
-	Key   string
-	Value int
-}
-
-// KVPI is a pair of key and value.
-type KVPI struct {
-	K string
-	V int
-}
-
-// KeyValuePairOfFloat is a pair of key and value.
-type KeyValuePairOfFloat struct {
-	Key   string
-	Value float64
-}
-
-// KVPF is a pair of key and value.
-type KVPF struct {
-	K string
-	V float64
-}
-
-// KeyValuePairOfString is a pair of key and value.
-type KeyValuePairOfString struct {
-	Key   string
-	Value string
-}
-
-// KVPS is a pair of key and value.
-type KVPS struct {
-	K string
-	V string
-}
-
 // Boolean is a type alias for bool that can be unmarshaled from 0|1, true|false etc.
 type Boolean bool
 
@@ -75,7 +27,7 @@ func (bit *Boolean) UnmarshalJSON(data []byte) error {
 		*bit = false
 		return nil
 	} else if len(asString) > 0 && (asString[0] == '"' || asString[0] == '\'') {
-		cleaned := StripQuotes(asString)
+		cleaned := String.StripQuotes(asString)
 		return bit.UnmarshalJSON([]byte(cleaned))
 	}
 	return exception.Newf("Boolean unmarshal error: invalid input %s", asString)

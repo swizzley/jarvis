@@ -15,6 +15,21 @@ var (
 		time.Saturday,
 	}
 
+	// WeekDays are the business time.Weekday in an array.
+	WeekDays = []time.Weekday{
+		time.Monday,
+		time.Tuesday,
+		time.Wednesday,
+		time.Thursday,
+		time.Friday,
+	}
+
+	// WeekWeekEndDaysDays are the weekend time.Weekday in an array.
+	WeekendDays = []time.Weekday{
+		time.Sunday,
+		time.Saturday,
+	}
+
 	//Epoch is unix epoc saved for utility purposes.
 	Epoch = time.Unix(0, 0)
 )
@@ -22,13 +37,23 @@ var (
 // NOTE: we have to use shifts here because in their infinite wisdom google didn't make these values powers of two for masking
 
 const (
-	// AllDays is a bitmask of all the days of the week.
-	AllDays = 1<<uint(time.Sunday) | 1<<uint(time.Monday) | 1<<uint(time.Tuesday) | 1<<uint(time.Wednesday) | 1<<uint(time.Thursday) | 1<<uint(time.Friday) | 1<<uint(time.Saturday)
-	// WeekDays is a bitmask of all the weekdays of the week.
-	WeekDays = 1<<uint(time.Monday) | 1<<uint(time.Tuesday) | 1<<uint(time.Wednesday) | 1<<uint(time.Thursday) | 1<<uint(time.Friday)
-	//WeekendDays is a bitmask of the weekend days of the week.
-	WeekendDays = 1<<uint(time.Sunday) | 1<<uint(time.Saturday)
+	// AllDaysMask is a bitmask of all the days of the week.
+	AllDaysMask = 1<<uint(time.Sunday) | 1<<uint(time.Monday) | 1<<uint(time.Tuesday) | 1<<uint(time.Wednesday) | 1<<uint(time.Thursday) | 1<<uint(time.Friday) | 1<<uint(time.Saturday)
+	// WeekDaysMask is a bitmask of all the weekdays of the week.
+	WeekDaysMask = 1<<uint(time.Monday) | 1<<uint(time.Tuesday) | 1<<uint(time.Wednesday) | 1<<uint(time.Thursday) | 1<<uint(time.Friday)
+	//WeekendDaysMask is a bitmask of the weekend days of the week.
+	WeekendDaysMask = 1<<uint(time.Sunday) | 1<<uint(time.Saturday)
 )
+
+// IsWeekDay returns if the day is a monday->friday.
+func IsWeekDay(day time.Weekday) bool {
+	return !IsWeekendDay(day)
+}
+
+// IsWeekendDay returns if the day is a monday->friday.
+func IsWeekendDay(day time.Weekday) bool {
+	return day == time.Saturday || day == time.Sunday
+}
 
 // The Schedule interface defines the form a schedule should take. All schedules are resposible for is giving a next run time after a last run time.
 type Schedule interface {
@@ -66,9 +91,9 @@ func EveryHourOnTheHour() Schedule {
 	return OnTheHour{}
 }
 
-// Immediately Returns a schedule that casues a job to run immediately after completion.
-func Immediately() Schedule {
-	return ImmediateSchedule{}
+// EveryHourAt returns a schedule that fires every hour at a given minute.
+func EveryHourAt(minute int) Schedule {
+	return OnTheHourAt{minute}
 }
 
 // WeeklyAt returns a schedule that fires on every of the given days at the given time by hour, minute and second.
@@ -83,22 +108,27 @@ func WeeklyAt(hour, minute, second int, days ...time.Weekday) Schedule {
 
 // DailyAt returns a schedule that fires every day at the given hour, minut and second.
 func DailyAt(hour, minute, second int) Schedule {
-	return &DailySchedule{DayOfWeekMask: AllDays, TimeOfDayUTC: time.Date(0, 0, 0, hour, minute, second, 0, time.UTC)}
+	return &DailySchedule{DayOfWeekMask: AllDaysMask, TimeOfDayUTC: time.Date(0, 0, 0, hour, minute, second, 0, time.UTC)}
 }
 
 // WeekdaysAt returns a schedule that fires every week day at the given hour, minut and second.
 func WeekdaysAt(hour, minute, second int) Schedule {
-	return &DailySchedule{DayOfWeekMask: WeekDays, TimeOfDayUTC: time.Date(0, 0, 0, hour, minute, second, 0, time.UTC)}
+	return &DailySchedule{DayOfWeekMask: WeekDaysMask, TimeOfDayUTC: time.Date(0, 0, 0, hour, minute, second, 0, time.UTC)}
 }
 
 // WeekendsAt returns a schedule that fires every weekend day at the given hour, minut and second.
 func WeekendsAt(hour, minute, second int) Schedule {
-	return &DailySchedule{DayOfWeekMask: WeekendDays, TimeOfDayUTC: time.Date(0, 0, 0, hour, minute, second, 0, time.UTC)}
+	return &DailySchedule{DayOfWeekMask: WeekendDaysMask, TimeOfDayUTC: time.Date(0, 0, 0, hour, minute, second, 0, time.UTC)}
 }
 
 // --------------------------------------------------------------------------------
 // Schedule Implementations
 // --------------------------------------------------------------------------------
+
+// OnDemand returns an on demand schedule.
+func OnDemand() Schedule {
+	return OnDemandSchedule{}
+}
 
 // OnDemandSchedule is a schedule that runs on demand.
 type OnDemandSchedule struct{}
@@ -106,6 +136,11 @@ type OnDemandSchedule struct{}
 // GetNextRunTime gets the next run time.
 func (ods OnDemandSchedule) GetNextRunTime(after *time.Time) *time.Time {
 	return nil
+}
+
+// Immediately Returns a schedule that casues a job to run immediately after completion.
+func Immediately() Schedule {
+	return ImmediateSchedule{}
 }
 
 // ImmediateSchedule fires immediately.
@@ -211,6 +246,26 @@ func (o OnTheHour) GetNextRunTime(after *time.Time) *time.Time {
 		returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC).Add(1 * time.Hour)
 	} else {
 		returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), 0, 0, 0, time.UTC).Add(1 * time.Hour)
+	}
+	return &returnValue
+}
+
+// OnTheHourAt is a schedule that fires every hour on the given minute.
+type OnTheHourAt struct {
+	Minute int
+}
+
+// GetNextRunTime implements the chronometer Schedule api.
+func (o OnTheHourAt) GetNextRunTime(after *time.Time) *time.Time {
+	var returnValue time.Time
+	now := time.Now().UTC()
+	if after == nil {
+		returnValue = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), o.Minute, 0, 0, time.UTC)
+	} else {
+		returnValue = time.Date(after.Year(), after.Month(), after.Day(), after.Hour(), o.Minute, 0, 0, time.UTC)
+	}
+	if returnValue.Before(now) {
+		returnValue = returnValue.Add(time.Hour)
 	}
 	return &returnValue
 }

@@ -53,7 +53,7 @@ func (cr *ConsoleRunner) isWhitelistedCommand(cmd string) bool {
 }
 
 func (cr *ConsoleRunner) handleConsoleRunnerRun(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessSpecificMention(m.Text, b.ID()))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessSpecificMention(m.Text, b.ID()))
 	cleanedMessage := core.FixLinks(messageWithoutMentions)
 
 	pieces := strings.Split(cleanedMessage, " ")

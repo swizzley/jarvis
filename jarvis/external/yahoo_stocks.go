@@ -73,7 +73,7 @@ func (si *StockInfo) Parse(line string) error {
 		return errors.New("mismatched line components to lookup map, cannot continue")
 	}
 
-	siValue := util.ReflectValue(si)
+	siValue := util.Reflection.ReflectValue(si)
 	for index := 0; index < len(parts); index++ {
 		rawValue := parts[index]
 		if fieldName, hasField := lookup[index]; hasField {
@@ -95,7 +95,7 @@ func marshal(fieldType reflect.Kind, rawValue string) (interface{}, error) {
 	}
 	switch fieldType {
 	case reflect.String:
-		return util.StripQuotes(rawValue), nil
+		return util.String.StripQuotes(rawValue), nil
 	case reflect.Int:
 		return strconv.Atoi(rawValue)
 	case reflect.Int64:

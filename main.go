@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	logger "github.com/blendlabs/go-logger"
 	"github.com/blendlabs/go-util"
 	"github.com/dlintw/goconf"
 	"github.com/wcharczuk/jarvis/jarvis"
@@ -16,7 +17,7 @@ import (
 
 func key() []byte {
 	keyBlob := os.Getenv("JARVIS_KEY")
-	key, keyErr := util.Base64Decode(keyBlob)
+	key, keyErr := util.String.Base64Decode(keyBlob)
 	if keyErr != nil {
 		fmt.Printf("error reading key: %v\n", keyErr)
 		os.Exit(1)
@@ -108,7 +109,9 @@ func initializeBotsFromConfig(configPath string) []*jarvis.Bot {
 
 func startStatusServer(bots []*jarvis.Bot) {
 	http.HandleFunc("/", injectBots(bots, statusHandler))
-	fmt.Printf("%s - %s - starting status server, listening on: %s\n", util.Color("jarvis-cli", util.ColorBlue), util.Color(time.Now().UTC().Format(time.RFC3339), util.ColorLightBlack), port())
+	label := logger.ColorBlue.Apply("jarvis-cli")
+	ts := logger.ColorLightBlack.Apply(time.Now().UTC().Format(time.RFC3339))
+	fmt.Printf("%s - %s - starting status server, listening on: %s\n", label, ts, port())
 	http.ListenAndServe(":"+port(), nil)
 }
 
@@ -138,11 +141,11 @@ func encryptValue(value string) (string, error) {
 		return util.StringEmpty, encryptError
 	}
 
-	return util.Base64Encode(encrypted), nil
+	return util.String.Base64Encode(encrypted), nil
 }
 
 func decryptValue(cipherText string) (string, error) {
-	tokenBlob, tokenBlobErr := util.Base64Decode(cipherText)
+	tokenBlob, tokenBlobErr := util.String.Base64Decode(cipherText)
 	if tokenBlobErr != nil {
 		return util.StringEmpty, tokenBlobErr
 	}

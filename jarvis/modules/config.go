@@ -73,7 +73,7 @@ func (c *Config) Actions() []core.Action {
 }
 
 func (c *Config) handleConfigSet(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	parts := core.ExtractSubMatches(messageWithoutMentions, "^config:(.+) (.+)")
 
 	if len(parts) < 3 {
@@ -94,7 +94,7 @@ func (c *Config) handleConfigSet(b core.Bot, m *slack.Message) error {
 }
 
 func (c *Config) handleConfigGet(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	parts := core.ExtractSubMatches(messageWithoutMentions, "^config:(.+)")
 
 	if len(parts) < 2 {
@@ -118,7 +118,7 @@ func (c *Config) handleConfig(b core.Bot, m *slack.Message) error {
 }
 
 func (c *Config) handleLoadModule(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	parts := core.ExtractSubMatches(messageWithoutMentions, "^module:load (.+)")
 	if len(parts) < 2 {
 		return exception.Newf("malformed message for `%s`", ActionModuleLoad)
@@ -137,7 +137,7 @@ func (c *Config) handleLoadModule(b core.Bot, m *slack.Message) error {
 }
 
 func (c *Config) handleUnloadModule(b core.Bot, m *slack.Message) error {
-	messageWithoutMentions := util.TrimWhitespace(core.LessMentions(m.Text))
+	messageWithoutMentions := util.String.TrimWhitespace(core.LessMentions(m.Text))
 	parts := core.ExtractSubMatches(messageWithoutMentions, "^module:unload (.+)")
 	if len(parts) < 2 {
 		return exception.Newf("malformed message for `%s`", ActionModuleUnload)

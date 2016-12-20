@@ -8,8 +8,20 @@ import (
 	"github.com/blendlabs/go-exception"
 )
 
+var (
+	// Reflection is a namespace for reflection utilities.
+	Reflection = reflectionUtil{}
+)
+
+// Patchable describes an object that can be patched with raw values.
+type Patchable interface {
+	Patch(values map[string]interface{}) error
+}
+
+type reflectionUtil struct{}
+
 // FollowValuePointer derefs a reflectValue until it isn't a pointer, but will preseve it's nilness.
-func FollowValuePointer(v reflect.Value) interface{} {
+func (ru reflectionUtil) FollowValuePointer(v reflect.Value) interface{} {
 	if v.Kind() == reflect.Ptr && v.IsNil() {
 		return nil
 	}
@@ -22,7 +34,7 @@ func FollowValuePointer(v reflect.Value) interface{} {
 }
 
 // FollowValue derefs a value until it isn't a pointer or an interface.
-func FollowValue(v reflect.Value) reflect.Value {
+func (ru reflectionUtil) FollowValue(v reflect.Value) reflect.Value {
 	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
 		v = v.Elem()
 	}
@@ -30,7 +42,7 @@ func FollowValue(v reflect.Value) reflect.Value {
 }
 
 // ReflectValue returns the integral reflect.Value for an object.
-func ReflectValue(obj interface{}) reflect.Value {
+func (ru reflectionUtil) ReflectValue(obj interface{}) reflect.Value {
 	v := reflect.ValueOf(obj)
 	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
 		v = v.Elem()
@@ -39,9 +51,9 @@ func ReflectValue(obj interface{}) reflect.Value {
 }
 
 // ReflectType returns the integral type for an object.
-func ReflectType(obj interface{}) reflect.Type {
+func (ru reflectionUtil) ReflectType(obj interface{}) reflect.Type {
 	t := reflect.TypeOf(obj)
-	for t.Kind() == reflect.Ptr || t.Kind() == reflect.Interface {
+	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 
@@ -49,29 +61,29 @@ func ReflectType(obj interface{}) reflect.Type {
 }
 
 // MakeNew returns a new instance of a reflect.Type.
-func MakeNew(t reflect.Type) interface{} {
+func (ru reflectionUtil) MakeNew(t reflect.Type) interface{} {
 	return reflect.New(t).Interface()
 }
 
 // MakeSliceOfType returns a new slice of a given reflect.Type.
-func MakeSliceOfType(t reflect.Type) interface{} {
+func (ru reflectionUtil) MakeSliceOfType(t reflect.Type) interface{} {
 	return reflect.New(reflect.SliceOf(t)).Interface()
 }
 
 // TypeName returns the string type name for an object's integral type.
-func TypeName(obj interface{}) string {
-	return ReflectType(obj).Name()
+func (ru reflectionUtil) TypeName(obj interface{}) string {
+	return ru.ReflectType(obj).Name()
 }
 
 // GetValueByName returns a value for a given struct field by name.
-func GetValueByName(target interface{}, fieldName string) interface{} {
-	targetValue := ReflectValue(target)
+func (ru reflectionUtil) GetValueByName(target interface{}, fieldName string) interface{} {
+	targetValue := ru.ReflectValue(target)
 	field := targetValue.FieldByName(fieldName)
 	return field.Interface()
 }
 
 // GetFieldByNameOrJSONTag returns a value for a given struct field by name or by json tag name.
-func GetFieldByNameOrJSONTag(targetValue reflect.Type, fieldName string) *reflect.StructField {
+func (ru reflectionUtil) GetFieldByNameOrJSONTag(targetValue reflect.Type, fieldName string) *reflect.StructField {
 	for index := 0; index < targetValue.NumField(); index++ {
 		field := targetValue.Field(index)
 
@@ -80,7 +92,7 @@ func GetFieldByNameOrJSONTag(targetValue reflect.Type, fieldName string) *reflec
 		}
 		tag := field.Tag
 		jsonTag := tag.Get("json")
-		if strings.Contains(jsonTag, fieldName) {
+		if String.CaseInsensitiveEquals(jsonTag, fieldName) {
 			return &field
 		}
 	}
@@ -88,53 +100,77 @@ func GetFieldByNameOrJSONTag(targetValue reflect.Type, fieldName string) *reflec
 	return nil
 }
 
+func (ru reflectionUtil) SetValueByName(target interface{}, fieldName string, fieldValue interface{}) error {
+	targetValue := ru.ReflectValue(target)
+	targetType := ru.ReflectType(target)
+	return ru.SetValueByNameFromType(target, targetType, targetValue, fieldName, fieldValue)
+}
+
 // SetValueByName sets a value on an object by its field name.
-func SetValueByName(target interface{}, fieldName string, fieldValue interface{}) error {
-	targetValue := ReflectValue(target)
-	targetType := ReflectType(target)
-	relevantField := GetFieldByNameOrJSONTag(targetType, fieldName)
+func (ru reflectionUtil) SetValueByNameFromType(obj interface{}, targetType reflect.Type, targetValue reflect.Value, fieldName string, fieldValue interface{}) error {
+	relevantField := ru.GetFieldByNameOrJSONTag(targetType, fieldName)
 
 	if relevantField == nil {
-		return exception.New(fmt.Sprintf("Invalid field for %s : `%s`", targetType.Name(), fieldName))
+		return exception.New("Invalid field for %s `%s`", targetType.Name(), fieldName)
 	}
 
 	field := targetValue.FieldByName(relevantField.Name)
+	if !field.CanSet() {
+		return exception.Newf("Cannot set field for %s `%s`", targetType.Name(), fieldName)
+	}
+
 	fieldType := field.Type()
-	if field.CanSet() {
-		valueReflected := ReflectValue(fieldValue)
-		if valueReflected.IsValid() {
-			if valueReflected.Type().AssignableTo(fieldType) {
-				if field.Kind() == reflect.Ptr && valueReflected.CanAddr() {
-					field.Set(valueReflected.Addr())
-				} else {
-					field.Set(valueReflected)
-				}
+	valueReflected := ru.ReflectValue(fieldValue)
+	if !valueReflected.IsValid() {
+		return exception.Newf("Invalid field for %s `%s`", targetType.Name(), fieldName)
+	}
+
+	if valueReflected.Type().AssignableTo(fieldType) {
+		if field.Kind() == reflect.Ptr && valueReflected.CanAddr() {
+			field.Set(valueReflected.Addr())
+		} else {
+			field.Set(valueReflected)
+		}
+		return nil
+	}
+
+	if field.Kind() == reflect.Ptr {
+		if valueReflected.CanAddr() {
+			if fieldType.Elem() == valueReflected.Type() {
+				field.Set(valueReflected.Addr())
 			} else {
-				if field.Kind() == reflect.Ptr {
-					if valueReflected.CanAddr() {
-						convertedValue := valueReflected.Convert(fieldType.Elem())
-						if convertedValue.CanAddr() {
-							field.Set(convertedValue.Addr())
-						}
-					}
-				} else {
-					convertedValue := valueReflected.Convert(fieldType)
-					field.Set(convertedValue)
+				convertedValue := valueReflected.Convert(fieldType.Elem())
+				if convertedValue.CanAddr() {
+					field.Set(convertedValue.Addr())
 				}
 			}
-		} else {
-			return exception.New(fmt.Sprintf("Invalid field for %s : `%s`", targetType.Name(), fieldName))
 		}
-	} else {
-		return exception.New(fmt.Sprintf("Cannot set field for %s : `%s`", targetType.Name(), fieldName))
+		return exception.Newf("Cannot take address of value: %#v", fieldValue)
 	}
+
+	convertedValue := valueReflected.Convert(fieldType)
+	field.Set(convertedValue)
+
 	return nil
 }
 
 // PatchObject updates an object based on a map of field names to values.
-func PatchObject(obj interface{}, patchValues map[string]interface{}) error {
+func (ru reflectionUtil) PatchObject(obj interface{}, patchValues map[string]interface{}) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = exception.Newf("%v", r)
+		}
+	}()
+
+	if patchable, isPatchable := obj.(Patchable); isPatchable {
+		return patchable.Patch(patchValues)
+	}
+
+	targetValue := ru.ReflectValue(obj)
+	targetType := targetValue.Type()
+
 	for key, value := range patchValues {
-		err := SetValueByName(obj, key, value)
+		err = ru.SetValueByNameFromType(obj, targetType, targetValue, key, value)
 		if err != nil {
 			return err
 		}
@@ -142,12 +178,17 @@ func PatchObject(obj interface{}, patchValues map[string]interface{}) error {
 	return nil
 }
 
+// KeyValuePairOfString is a pair of string values.
+type KeyValuePairOfString struct {
+	Key, Value string
+}
+
 // DecomposeToPostData dumps an object to a slice of key value tuples representing field name as form value and string value of field.
-func DecomposeToPostData(object interface{}) []KeyValuePairOfString {
+func (ru reflectionUtil) DecomposeToPostData(object interface{}) []KeyValuePairOfString {
 	kvps := []KeyValuePairOfString{}
 
-	objType := ReflectType(object)
-	objValue := ReflectValue(object)
+	objType := ru.ReflectType(object)
+	objValue := ru.ReflectValue(object)
 
 	numberOfFields := objType.NumField()
 	for index := 0; index < numberOfFields; index++ {
@@ -173,7 +214,7 @@ func DecomposeToPostData(object interface{}) []KeyValuePairOfString {
 				//do something special
 				for subIndex := 0; subIndex < valueField.Len(); subIndex++ {
 					itemAtIndex := valueField.Index(subIndex).Interface()
-					for _, prop := range DecomposeToPostData(itemAtIndex) {
+					for _, prop := range ru.DecomposeToPostData(itemAtIndex) {
 						if len(prop.Value) != 0 { //this is a gutcheck, it shouldn't be needed
 							ikvp := KeyValuePairOfString{}
 							ikvp.Key = fmt.Sprintf("%s[%d].%s", kvp.Key, subIndex, prop.Key)
@@ -183,7 +224,7 @@ func DecomposeToPostData(object interface{}) []KeyValuePairOfString {
 					}
 				}
 			} else {
-				value := FollowValuePointer(valueField)
+				value := ru.FollowValuePointer(valueField)
 				if value != nil {
 					kvp.Value = fmt.Sprintf("%v", value)
 					if len(kvp.Value) != 0 {
@@ -198,11 +239,11 @@ func DecomposeToPostData(object interface{}) []KeyValuePairOfString {
 }
 
 // DecomposeToPostDataAsJSON returns an array of KeyValuePairOfString for an object.
-func DecomposeToPostDataAsJSON(object interface{}) []KeyValuePairOfString {
+func (ru reflectionUtil) DecomposeToPostDataAsJSON(object interface{}) []KeyValuePairOfString {
 	kvps := []KeyValuePairOfString{}
 
-	objType := ReflectType(object)
-	objValue := ReflectValue(object)
+	objType := ru.ReflectType(object)
+	objValue := ru.ReflectValue(object)
 
 	numberOfFields := objType.NumField()
 	for index := 0; index < numberOfFields; index++ {
@@ -224,11 +265,11 @@ func DecomposeToPostDataAsJSON(object interface{}) []KeyValuePairOfString {
 				kvp.Key = field.Name
 			}
 
-			valueDereferenced := FollowValue(valueField)
-			value := FollowValuePointer(valueField)
+			valueDereferenced := ru.FollowValue(valueField)
+			value := ru.FollowValuePointer(valueField)
 			if value != nil {
 				if valueDereferenced.Kind() == reflect.Slice || valueDereferenced.Kind() == reflect.Map {
-					kvp.Value = SerializeJSON(value)
+					kvp.Value = JSON.Serialize(value)
 				} else {
 					kvp.Value = fmt.Sprintf("%v", value)
 				}
@@ -241,6 +282,13 @@ func DecomposeToPostDataAsJSON(object interface{}) []KeyValuePairOfString {
 	}
 
 	return kvps
+}
+
+// Decompose is a *very* inefficient way to turn an object into a map string => interface.
+func (ru reflectionUtil) Decompose(object interface{}) map[string]interface{} {
+	var output map[string]interface{}
+	JSON.Deserialize(&output, JSON.Serialize(object))
+	return output
 }
 
 // checks if a value is a zero value or its types default value
@@ -276,9 +324,9 @@ func isExported(fieldName string) bool {
 }
 
 // CoalesceFields merges non-zero fields into destination fields marked with the `coalesce:...` struct field tag.
-func CoalesceFields(object interface{}) {
-	objectValue := ReflectValue(object)
-	objectType := ReflectType(object)
+func (ru reflectionUtil) CoalesceFields(object interface{}) {
+	objectValue := ru.ReflectValue(object)
+	objectType := ru.ReflectType(object)
 	if objectType.Kind() == reflect.Struct {
 		numberOfFields := objectValue.NumField()
 		for index := 0; index < numberOfFields; index++ {
@@ -301,13 +349,13 @@ func CoalesceFields(object interface{}) {
 			}
 			// recurse, in case nested values of this field need to be set as well
 			if isExported(field.Name) && !isZero(fieldValue) {
-				CoalesceFields(fieldValue.Addr().Interface())
+				ru.CoalesceFields(fieldValue.Addr().Interface())
 			}
 		}
 	} else if objectType.Kind() == reflect.Array || objectType.Kind() == reflect.Slice {
 		arrayLength := objectValue.Len()
 		for i := 0; i < arrayLength; i++ {
-			CoalesceFields(objectValue.Index(i).Addr().Interface())
+			ru.CoalesceFields(objectValue.Index(i).Addr().Interface())
 		}
 	}
 }

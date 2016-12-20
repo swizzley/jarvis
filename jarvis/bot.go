@@ -9,6 +9,7 @@ import (
 
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
+	logger "github.com/blendlabs/go-logger"
 	"github.com/blendlabs/go-util"
 	"github.com/blendlabs/go-util/collections"
 	"github.com/wcharczuk/go-slack"
@@ -325,7 +326,7 @@ func (b *Bot) dispatchResponse(m *slack.Message) error {
 	user := b.FindUser(m.User)
 	if user != nil {
 		if m.User != "slackbot" && m.User != b.id && !user.IsBot {
-			messageText := util.TrimWhitespace(core.LessMentions(m.Text))
+			messageText := util.String.TrimWhitespace(core.LessMentions(m.Text))
 			if core.IsUserMention(m.Text, b.id) || core.IsDM(m.Channel) {
 				for _, action := range b.mentionActions {
 					if core.Like(messageText, action.MessagePattern) && len(action.MessagePattern) != 0 {
@@ -422,7 +423,9 @@ func (b *Bot) LogOutgoingMessage(destinationID string, components ...interface{}
 // Log writes to the log.
 func (b *Bot) Log(components ...interface{}) {
 	message := fmt.Sprint(components...)
-	fmt.Printf("%s - %s - %s\n", util.Color(b.OrganizationName(), util.ColorBlue), util.Color(time.Now().UTC().Format(time.RFC3339), util.ColorLightBlack), message)
+	org := logger.ColorBlue.Apply(b.OrganizationName())
+	ts := logger.ColorLightBlack.Apply(time.Now().UTC().Format(time.RFC3339))
+	fmt.Printf("%s - %s - %s\n", org, ts, message)
 }
 
 // Logf writes to the log in a given format.
