@@ -95,10 +95,10 @@
 			"revisionTime": "2016-02-17T17:43:51Z"
 		},
 		{
-			"checksumSHA1": "6fAHv/OiZlYmNpZhL2upbELTOO4=",
+			"checksumSHA1": "mtuvdxbH3dAWbWIwqNTPsXiUz+E=",
 			"path": "github.com/wcharczuk/go-slack",
-			"revision": "7e08fd2224b4e0b97008985bb5df91bf190db43f",
-			"revisionTime": "2017-04-04T21:49:16Z"
+			"revision": "47b9989682c7002c962e9a13fd5f158c9dc7effa",
+			"revisionTime": "2017-04-04T22:52:40Z"
 		}
 	],
 	"rootPath": "github.com/wcharczuk/jarvis"

@@ -15,7 +15,7 @@ import (
 
 func key() []byte {
 	keyBlob := os.Getenv("JARVIS_KEY")
-	key, keyErr := util.String.Base64Decode(keyBlob)
+	key, keyErr := util.Base64.Decode(keyBlob)
 	if keyErr != nil {
 		fmt.Printf("error reading key: %v\n", keyErr)
 		os.Exit(1)
@@ -36,7 +36,7 @@ func main() {
 	command := args[1]
 	switch strings.ToLower(command) {
 	case "generate-key":
-		fmt.Printf("JARVIS_KEY=%s\n", util.String.Base64Encode(core.CreateKey(32)))
+		fmt.Printf("JARVIS_KEY=%s\n", util.Base64.Encode(core.CreateKey(32)))
 		os.Exit(0)
 	case "encrypt-value":
 		if len(args) < 3 {
@@ -124,11 +124,11 @@ func encryptValue(value string) (string, error) {
 		return util.StringEmpty, encryptError
 	}
 
-	return util.String.Base64Encode(encrypted), nil
+	return util.Base64.Encode(encrypted), nil
 }
 
 func decryptValue(cipherText string) (string, error) {
-	tokenBlob, tokenBlobErr := util.String.Base64Decode(cipherText)
+	tokenBlob, tokenBlobErr := util.Base64.Decode(cipherText)
 	if tokenBlobErr != nil {
 		return util.StringEmpty, tokenBlobErr
 	}

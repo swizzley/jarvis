@@ -263,7 +263,7 @@ func (b *Bot) loadConfiguredModules() {
 func (b *Bot) Init() error {
 
 	b.RegisterModule(new(modules.ConsoleRunner))
-	b.RegisterModule(new(modules.Jira))
+	//b.RegisterModule(new(modules.Jira))
 	b.RegisterModule(new(modules.Stocks))
 	b.RegisterModule(new(modules.Jobs))
 	b.RegisterModule(new(modules.Config))
@@ -278,12 +278,14 @@ func (b *Bot) Init() error {
 	b.client.AddEventListener(slack.EventHello, func(c *slack.Client, m *slack.Message) {
 		b.Log("slack is connected")
 	})
-	b.client.AddEventListener(slack.EventPing, func(c *slack.Client, m *slack.Message) {
-		b.Log("ping!")
-	})
-	b.client.AddEventListener(slack.EventPong, func(c *slack.Client, m *slack.Message) {
-		b.Log("pong!")
-	})
+	if b.agent.IsEnabled(logger.EventDebug) {
+		b.client.AddEventListener(slack.EventPing, func(c *slack.Client, m *slack.Message) {
+			b.agent.Debugf("ping!")
+		})
+		b.client.AddEventListener(slack.EventPong, func(c *slack.Client, m *slack.Message) {
+			b.agent.Debugf("pong!")
+		})
+	}
 	b.client.AddEventListener(slack.EventMessage, func(c *slack.Client, m *slack.Message) {
 		resErr := b.dispatchResponse(m)
 		if resErr != nil {
@@ -325,6 +327,8 @@ func (b *Bot) dispatchResponse(m *slack.Message) error {
 		}
 	}()
 
+	b.agent.Debugf("dispatchResponse :: incoming message:\n%#v", m)
+
 	//b.LogIncomingMessage(m)
 	user := b.FindUser(m.User)
 	if user != nil {
@@ -332,20 +336,26 @@ func (b *Bot) dispatchResponse(m *slack.Message) error {
 			messageText := util.String.TrimWhitespace(core.LessMentions(m.Text))
 			if core.IsUserMention(m.Text, b.id) || core.IsDM(m.Channel) {
 				for _, action := range b.mentionActions {
-					if core.Like(messageText, action.MessagePattern) && len(action.MessagePattern) != 0 {
+					if core.Like(messageText, action.MessagePattern) && !core.IsEmpty(action.MessagePattern) {
+						b.agent.Debugf("dispatchResponse :: handler found: %s", action.ID)
 						return action.Handler(b, m)
 					}
 				}
+			} else {
+				b.agent.Debugf("dispatchResponse :: message was not a bot user mention.")
 			}
 			if b.passivesEnabled() {
 				for _, action := range b.passiveActions {
-					if core.Like(messageText, action.MessagePattern) && len(action.MessagePattern) != 0 {
+					if core.Like(messageText, action.MessagePattern) && !core.IsEmpty(action.MessagePattern) {
 						return action.Handler(b, m)
 					}
 				}
 			}
 		}
+		b.agent.Debugf("dispatchResponse :: user was self, slackbot, or other bot.")
+		return nil
 	}
+	b.agent.Debugf("dispatchResponse :: user not found")
 	return nil
 }
 

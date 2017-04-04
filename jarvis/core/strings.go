@@ -270,8 +270,44 @@ func ReplaceAny(corpus string, replacement string, values ...string) string {
 }
 
 // Mentions extracts mentions.
-func Mentions(corpus string) []string {
-	return ExtractSubMatches(corpus, "<@(.*)>")
+func Mentions(corpus string) (mentions []string) {
+	const (
+		lt    = rune('<')
+		gt    = rune('>')
+		at    = rune('@')
+		space = rune(' ')
+		colon = rune(':')
+	)
+
+	workingUserID := ""
+	state := 0
+	for _, c := range corpus {
+		switch state {
+		case 0:
+			if c == lt {
+				state = 1
+			}
+		case 1:
+			if c == at {
+				state = 2
+			} else {
+				state = 0
+			}
+		case 2:
+			if c == gt {
+				mentions = append(mentions, workingUserID)
+				state = 3
+				workingUserID = ""
+			} else {
+				workingUserID = workingUserID + string(c)
+			}
+		case 3:
+			if c != space && c != colon {
+				state = 0
+			}
+		}
+	}
+	return
 }
 
 // StringSplitQuoteAware splits a string on the separator but not

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/blendlabs/go-assert"
@@ -77,4 +78,14 @@ func TestFixLinks(t *testing.T) {
 	a.Equal("this is a test", FixLinks(messageWithoutAnything))
 
 	a.Equal(" run ping google.com", FixLinks(regression1))
+}
+
+func TestMentions(t *testing.T) {
+	a := assert.New(t)
+
+	commandOneUser := "<@U0KMCE0MC> foo <@U0H7ET59Q>"
+	mentions := Mentions(commandOneUser)
+	a.Len(mentions, 2, fmt.Sprintf("%v", mentions))
+	a.Equal("U0KMCE0MC", mentions[0])
+	a.Equal("U0H7ET59Q", mentions[1])
 }
