@@ -87,7 +87,7 @@ type JiraError struct {
 
 // GetJiraIssue gets the metadata for a given issueID.
 func GetJiraIssue(user, password, host, issueID string) (*JiraIssue, error) {
-	res, err := core.NewExternalRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPathf("rest/api/2/issue/%s", issueID).FetchRawResponse()
+	res, err := core.NewExternalRequest().AsGet().WithBasicAuth(user, password).WithScheme("https").WithHost(host).WithPathf("rest/api/2/issue/%s", issueID).Fetch()
 	if err != nil {
 		return nil, err
 	}

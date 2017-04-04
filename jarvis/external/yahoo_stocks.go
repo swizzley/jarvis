@@ -230,14 +230,14 @@ func StockPrice(tickers []string) ([]StockInfo, error) {
 		return []StockInfo{}, nil
 	}
 
-	rawResults, meta, resErr := core.NewExternalRequest().AsGet().
+	rawResults, meta, err := core.NewExternalRequest().AsGet().
 		WithURL("http://download.finance.yahoo.com/d/quotes.csv").
 		WithQueryString("s", strings.Join(tickers, "+")).
 		WithQueryString("f", stockInfoFormat()).
-		FetchStringWithMeta()
+		StringWithMeta()
 
-	if resErr != nil {
-		return []StockInfo{}, resErr
+	if err != nil {
+		return []StockInfo{}, err
 	}
 
 	if meta.StatusCode != http.StatusOK {
@@ -249,7 +249,6 @@ func StockPrice(tickers []string) ([]StockInfo, error) {
 	scanner := bufio.NewScanner(strings.NewReader(rawResults))
 	scanner.Split(bufio.ScanLines)
 
-	var err error
 	for scanner.Scan() {
 		si := &StockInfo{}
 		si.Format = stockInfoFormat()

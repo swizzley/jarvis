@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -196,9 +195,15 @@ func (su stringUtil) CombinePathComponents(components ...string) string {
 	return fullPath
 }
 
-// RandomString returns a new random string composed of letters from the `letters` collection.
-func (su stringUtil) RandomString(length int) string {
+// RandomLetters returns a new random string composed of letters from the `letters` collection.
+func (su stringUtil) RandomLetters(length int) string {
 	return su.RandomRunes(Letters, length)
+}
+
+// RandomString returns a new random string composed of letters from the `letters` collection.
+// Deprecation Notice: this is going away soonish, use `RandomLetters(length)` instead.
+func (su stringUtil) RandomString(length int) string {
+	return su.RandomLetters(length)
 }
 
 // RandomNumbers returns a random string of chars from the `numbers` collection.
@@ -332,15 +337,6 @@ func (su stringUtil) Float64ToString(input float64) string {
 	return strconv.FormatFloat(input, 'f', -1, 64)
 }
 
-// ToCSVOfInt returns a csv from a given slice of integers.
-func (su stringUtil) ToCSVOfInt(input []int) string {
-	outputStrings := []string{}
-	for _, v := range input {
-		outputStrings = append(outputStrings, su.IntToString(v))
-	}
-	return strings.Join(outputStrings, ",")
-}
-
 // StripQuotes removes quote characters from a string.
 func (su stringUtil) StripQuotes(input string) string {
 	output := []rune{}
@@ -352,7 +348,7 @@ func (su stringUtil) StripQuotes(input string) string {
 	return string(output)
 }
 
-// TrimTo trims a string to a given length.
+// TrimTo trims a string to a given length, i.e. the substring [0, length).
 func (su stringUtil) TrimTo(val string, length int) string {
 	if len(val) > length {
 		return val[0:length]
@@ -381,28 +377,6 @@ func (su stringUtil) IsCamelCase(input string) bool {
 	}
 
 	return hasLowers && hasUppers
-}
-
-// Base64Encode returns a base64 string for a byte array.
-func (su stringUtil) Base64Encode(blob []byte) string {
-	return base64.StdEncoding.EncodeToString(blob)
-}
-
-// Base64Decode returns a byte array for a base64 encoded string.
-func (su stringUtil) Base64Decode(blob string) ([]byte, error) {
-	return base64.StdEncoding.DecodeString(blob)
-}
-
-// FormatFileSize returns a string representation of a file size in bytes.
-func (su stringUtil) FormatFileSize(sizeBytes int) string {
-	if sizeBytes >= 1<<30 {
-		return fmt.Sprintf("%dgB", sizeBytes/(1<<30))
-	} else if sizeBytes >= 1<<20 {
-		return fmt.Sprintf("%dmB", sizeBytes/(1<<20))
-	} else if sizeBytes >= 1<<10 {
-		return fmt.Sprintf("%dkB", sizeBytes/(1<<10))
-	}
-	return fmt.Sprintf("%dB", sizeBytes)
 }
 
 var nonTitleWords = map[string]bool{
@@ -443,4 +417,19 @@ func (su stringUtil) ToTitleCase(corpus string) string {
 		}
 	}
 	return output.String()
+}
+
+// FixedWidth returns a fixed width, right aligned, string with a given minimum space padded width.
+func (su stringUtil) FixedWidth(text string, width int) string {
+	fixedToken := fmt.Sprintf("%%%d.%ds", width, width)
+	return fmt.Sprintf(fixedToken, text)
+}
+
+// FixedWidthLeftAligned returns a fixed width, left aligned, string with a given minimum space padded width.
+func (su stringUtil) FixedWidthLeftAligned(text string, width int) string {
+	if width < len(text) {
+		return text[0:width]
+	}
+	fixedToken := fmt.Sprintf("%%-%ds", width)
+	return fmt.Sprintf(fixedToken, text)
 }

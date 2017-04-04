@@ -71,6 +71,16 @@ func (cq *ChannelQueue) Each(consumer func(value interface{})) {
 	}
 }
 
+// EachUntil pulls every value out of the channel, calls consumer on it, and puts it back and can abort mid process.
+func (cq *ChannelQueue) EachUntil(consumer func(value interface{}) bool) {
+	panic("Interupted iteration is not supported")
+}
+
+// ReverseEachUntil pulls every value out of the channel, calls consumer on it, and puts it back and can abort mid process.
+func (cq *ChannelQueue) ReverseEachUntil(consumer func(value interface{}) bool) {
+	panic("Reverse iteration is not supported")
+}
+
 // AsSlice iterates over the queue and returns an array of its contents.
 func (cq *ChannelQueue) AsSlice() []interface{} {
 	cq.latch.Lock()

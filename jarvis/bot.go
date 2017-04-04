@@ -5,7 +5,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
@@ -35,6 +34,7 @@ func NewBotFromEnvironment() (*Bot, error) {
 	} else {
 		b.Configuration()[modules.ConfigModules] = "all"
 	}
+	b.agent = logger.NewFromEnvironment()
 	return b, nil
 }
 
@@ -50,6 +50,7 @@ func NewBot(token string) *Bot {
 		loadedModules:  collections.SetOfString{},
 		mentionActions: []core.Action{},
 		passiveActions: []core.Action{},
+		agent:          logger.New(logger.NewEventFlagSetNone()),
 	}
 }
 
@@ -63,6 +64,8 @@ type Bot struct {
 	state            map[string]interface{}
 	jobManager       *chronometer.JobManager
 	client           *slack.Client
+
+	agent *logger.Agent
 
 	modules       map[string]core.BotModule
 	loadedModules collections.SetOfString
@@ -259,13 +262,14 @@ func (b *Bot) loadConfiguredModules() {
 // Init connects the bot to Slack.
 func (b *Bot) Init() error {
 
-	b.RegisterModule(&modules.ConsoleRunner{})
-	b.RegisterModule(&modules.Jira{})
-	b.RegisterModule(&modules.Stocks{})
-	b.RegisterModule(&modules.Jobs{})
-	b.RegisterModule(&modules.Config{})
-	b.RegisterModule(&modules.Util{})
-	b.RegisterModule(&modules.Core{})
+	b.RegisterModule(new(modules.ConsoleRunner))
+	b.RegisterModule(new(modules.Jira))
+	b.RegisterModule(new(modules.Stocks))
+	b.RegisterModule(new(modules.Jobs))
+	b.RegisterModule(new(modules.Config))
+	b.RegisterModule(new(modules.Util))
+	b.RegisterModule(new(modules.Core))
+	b.RegisterModule(new(modules.Slack))
 	b.loadConfiguredModules()
 
 	client := slack.NewClient(b.token)
@@ -274,14 +278,12 @@ func (b *Bot) Init() error {
 	b.client.AddEventListener(slack.EventHello, func(c *slack.Client, m *slack.Message) {
 		b.Log("slack is connected")
 	})
-	/*
-		b.client.AddEventListener(slack.EventPing, func(c *slack.Client, m *slack.Message) {
-			b.Log("ping!")
-		})
-		b.client.AddEventListener(slack.EventPong, func(c *slack.Client, m *slack.Message) {
-			b.Log("pong!")
-		})
-	*/
+	b.client.AddEventListener(slack.EventPing, func(c *slack.Client, m *slack.Message) {
+		b.Log("ping!")
+	})
+	b.client.AddEventListener(slack.EventPong, func(c *slack.Client, m *slack.Message) {
+		b.Log("pong!")
+	})
 	b.client.AddEventListener(slack.EventMessage, func(c *slack.Client, m *slack.Message) {
 		resErr := b.dispatchResponse(m)
 		if resErr != nil {
@@ -304,6 +306,7 @@ func (b *Bot) Start() error {
 	b.organizationName = session.Team.Name
 	b.ChannelsLookup = b.createChannelLookup(session)
 	b.UsersLookup = b.createUsersLookup(session)
+	b.jobManager.SetLogger(b.agent)
 	b.jobManager.Start()
 	return nil
 }
@@ -422,13 +425,10 @@ func (b *Bot) LogOutgoingMessage(destinationID string, components ...interface{}
 
 // Log writes to the log.
 func (b *Bot) Log(components ...interface{}) {
-	message := fmt.Sprint(components...)
-	org := logger.ColorBlue.Apply(b.OrganizationName())
-	ts := logger.ColorLightBlack.Apply(time.Now().UTC().Format(time.RFC3339))
-	fmt.Printf("%s - %s - %s\n", org, ts, message)
+	b.agent.Infof(fmt.Sprint(components...))
 }
 
 // Logf writes to the log in a given format.
 func (b *Bot) Logf(format string, components ...interface{}) {
-	b.Log(fmt.Sprintf(format, components...))
+	b.agent.Infof(format, components...)
 }

@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/blendlabs/go-exception"
 	"github.com/blendlabs/go-request"
@@ -64,23 +63,7 @@ func ClearMockedResponses() {
 }
 
 // NewExternalRequest Creates a new external request
-func NewExternalRequest() *request.HTTPRequest {
-	req := request.NewHTTPRequest().WithMockedResponse(func(verb string, workingURL *url.URL) (bool, *request.HTTPResponseMeta, []byte, error) {
-		if isMocked {
-			storedURL := fmt.Sprintf("%s_%s", verb, workingURL.String())
-			if mockResponse, ok := mocks[storedURL]; ok {
-				meta := &request.HTTPResponseMeta{}
-				meta.StatusCode = mockResponse.StatusCode
-				meta.ContentLength = int64(len(mockResponse.ResponseBody))
-				return true, meta, mockResponse.ResponseBody, mockResponse.Error
-			}
-			panic(fmt.Sprintf("attempted to make service request w/o mocking endpoint: %s", workingURL.String()))
-		} else {
-			return false, nil, nil, nil
-		}
-	}) /*.
-	OnResponse(func(meta *request.HTTPResponseMeta, body []byte) {
-		fmt.Printf("%s - External Response Body: %s\n", time.Now().UTC().Format(time.RFC3339), string(body))
-	})*/
+func NewExternalRequest() *request.Request {
+	req := request.New().WithMockedResponse(request.MockedResponseInjector)
 	return req
 }

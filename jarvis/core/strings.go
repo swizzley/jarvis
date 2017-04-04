@@ -60,6 +60,11 @@ func IsAngry(message string) bool {
 	return LikeAny(message, "stupid", "worst", "terrible", "horrible", "cunt", "suck", "awful", "asinine") //yep.
 }
 
+// IsEmpty returns if the string is whitespace or 0 len.
+func IsEmpty(message string) bool {
+	return len(strings.TrimSpace(message)) == 0
+}
+
 // LessMentions removes mentions from a message.
 func LessMentions(message string) string {
 	output := ""

@@ -168,6 +168,10 @@ func (c *Core) handlePassiveCatchAll(b core.Bot, m *slack.Message) error {
 			response := []string{"slow down %s", "maybe calm down %s", "%s you should really relax", "chill %s", "it's ok %s, let it out"}
 			return b.Sayf(m.Channel, core.Random(response), strings.ToLower(user.Profile.FirstName))
 		}
+		if core.IsEmpty(message) {
+			user := b.FindUser(m.User)
+			return b.Sayf("hello %s", user.Profile.FirstName)
+		}
 	}
 
 	return nil

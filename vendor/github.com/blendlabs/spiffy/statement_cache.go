@@ -5,11 +5,11 @@ import (
 	"sync"
 )
 
-// NewStatementCache returns a new `StatementCache`.
-func NewStatementCache(dbc *sql.DB) *StatementCache {
+// newStatementCache returns a new `StatementCache`.
+func newStatementCache(dbc *sql.DB) *StatementCache {
 	return &StatementCache{
 		dbc:       dbc,
-		cacheLock: &sync.RWMutex{},
+		cacheLock: &sync.Mutex{},
 		cache:     make(map[string]*sql.Stmt),
 	}
 }
@@ -17,7 +17,7 @@ func NewStatementCache(dbc *sql.DB) *StatementCache {
 // StatementCache is a cache of prepared statements.
 type StatementCache struct {
 	dbc       *sql.DB
-	cacheLock *sync.RWMutex
+	cacheLock *sync.Mutex
 	cache     map[string]*sql.Stmt
 }
 
@@ -40,47 +40,56 @@ func (sc *StatementCache) closeAll() error {
 // Clear deletes all cached statements.
 func (sc *StatementCache) Clear() error {
 	sc.cacheLock.Lock()
+	defer sc.cacheLock.Unlock()
+
 	err := sc.closeAll()
 	sc.cache = make(map[string]*sql.Stmt)
-	sc.cacheLock.Unlock()
 	return err
 }
 
 // HasStatement returns if the cache contains a statement.
-func (sc *StatementCache) HasStatement(statement string) bool {
-	return sc.getCachedStatement(statement) != nil
+func (sc *StatementCache) HasStatement(statementID string) bool {
+	return sc.getCachedStatement(statementID) != nil
 }
 
-func (sc *StatementCache) getCachedStatement(statement string) *sql.Stmt {
-	sc.cacheLock.RLock()
-	defer sc.cacheLock.RUnlock()
+// InvalidateStatement removes a statement from the cache.
+func (sc *StatementCache) InvalidateStatement(statementID string) {
+	sc.cacheLock.Lock()
+	defer sc.cacheLock.Unlock()
 
-	if stmt, hasStmt := sc.cache[statement]; hasStmt {
+	if _, hasStatement := sc.cache[statementID]; hasStatement {
+		delete(sc.cache, statementID)
+	}
+}
+
+func (sc *StatementCache) getCachedStatement(statementID string) *sql.Stmt {
+	sc.cacheLock.Lock()
+	defer sc.cacheLock.Unlock()
+	if stmt, hasStmt := sc.cache[statementID]; hasStmt {
 		return stmt
 	}
+
 	return nil
 }
 
 // Prepare returns a cached expression for a statement, or creates and caches a new one.
-func (sc *StatementCache) Prepare(statement string) (*sql.Stmt, error) {
-	cached := sc.getCachedStatement(statement)
+func (sc *StatementCache) Prepare(id, statementProvider string) (*sql.Stmt, error) {
+	cached := sc.getCachedStatement(id)
 	if cached != nil {
 		return cached, nil
 	}
 
 	sc.cacheLock.Lock()
 	defer sc.cacheLock.Unlock()
-
-	// getCachedStatement without locking ...
-	if stmt, hasStmt := sc.cache[statement]; hasStmt {
+	if stmt, hasStmt := sc.cache[id]; hasStmt {
 		return stmt, nil
 	}
 
-	stmt, err := sc.dbc.Prepare(statement)
+	stmt, err := sc.dbc.Prepare(statementProvider)
 	if err != nil {
 		return nil, err
 	}
 
-	sc.cache[statement] = stmt
+	sc.cache[id] = stmt
 	return stmt, nil
 }

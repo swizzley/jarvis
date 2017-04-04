@@ -17,7 +17,7 @@ var (
 )
 
 // NewRingBuffer creates a new, empty, RingBuffer.
-func NewRingBuffer() Queue {
+func NewRingBuffer() *RingBuffer {
 	return &RingBuffer{
 		array: make([]interface{}, ringBufferDefaultCapacity),
 		head:  0,
@@ -27,7 +27,7 @@ func NewRingBuffer() Queue {
 }
 
 // NewRingBufferWithCapacity creates a new RingBuffer pre-allocated with the given capacity.
-func NewRingBufferWithCapacity(capacity int) Queue {
+func NewRingBufferWithCapacity(capacity int) *RingBuffer {
 	return &RingBuffer{
 		array: make([]interface{}, capacity),
 		head:  0,
@@ -37,7 +37,7 @@ func NewRingBufferWithCapacity(capacity int) Queue {
 }
 
 // NewRingBufferFromSlice createsa  ring buffer out of a slice.
-func NewRingBufferFromSlice(values []interface{}) Queue {
+func NewRingBufferFromSlice(values []interface{}) *RingBuffer {
 	return &RingBuffer{
 		array: values,
 		head:  0,
@@ -58,7 +58,7 @@ type RingBuffer struct {
 
 // Len returns the length of the ring buffer (as it is currently populated).
 // Actual memory footprint may be different.
-func (rb *RingBuffer) Len() int {
+func (rb *RingBuffer) Len() (len int) {
 	return rb.size
 }
 
@@ -69,6 +69,7 @@ func (rb *RingBuffer) TotalLen() int {
 
 // Clear removes all objects from the RingBuffer.
 func (rb *RingBuffer) Clear() {
+
 	if rb.head < rb.tail {
 		arrayClear(rb.array, rb.head, rb.size)
 	} else {
@@ -96,7 +97,7 @@ func (rb *RingBuffer) Enqueue(object interface{}) {
 	rb.size++
 }
 
-// Dequeue removes the first element from the RingBuffer.
+// Dequeue removes the first (oldest) element from the RingBuffer.
 func (rb *RingBuffer) Dequeue() interface{} {
 	if rb.size == 0 {
 		return nil
@@ -105,6 +106,7 @@ func (rb *RingBuffer) Dequeue() interface{} {
 	removed := rb.array[rb.head]
 	rb.head = (rb.head + 1) % len(rb.array)
 	rb.size--
+
 	return removed
 }
 
@@ -189,6 +191,71 @@ func (rb *RingBuffer) Each(consumer func(value interface{})) {
 		for cursor := 0; cursor < rb.tail; cursor++ {
 			consumer(rb.array[cursor])
 		}
+	}
+}
+
+// Drain calls the consumer for each element in the buffer, while also dequeueing that entry.
+func (rb *RingBuffer) Drain(consumer func(value interface{})) {
+	if rb.size == 0 {
+		return
+	}
+
+	len := rb.Len()
+	for i := 0; i < len; i++ {
+		consumer(rb.Dequeue())
+	}
+}
+
+// EachUntil calls the consumer for each element in the buffer with a stopping condition in head=>tail order.
+func (rb *RingBuffer) EachUntil(consumer func(value interface{}) bool) {
+	if rb.size == 0 {
+		return
+	}
+
+	if rb.head < rb.tail {
+		for cursor := rb.head; cursor < rb.tail; cursor++ {
+			if !consumer(rb.array[cursor]) {
+				return
+			}
+		}
+	} else {
+		for cursor := rb.head; cursor < len(rb.array); cursor++ {
+			if !consumer(rb.array[cursor]) {
+				return
+			}
+		}
+		for cursor := 0; cursor < rb.tail; cursor++ {
+			if !consumer(rb.array[cursor]) {
+				return
+			}
+		}
+	}
+}
+
+// ReverseEachUntil calls the consumer for each element in the buffer with a stopping condition in tail=>head order.
+func (rb *RingBuffer) ReverseEachUntil(consumer func(value interface{}) bool) {
+	if rb.size == 0 {
+		return
+	}
+
+	if rb.head < rb.tail {
+		for cursor := rb.tail - 1; cursor >= rb.head; cursor-- {
+			if !consumer(rb.array[cursor]) {
+				return
+			}
+		}
+	} else {
+		for cursor := rb.tail; cursor > 0; cursor-- {
+			if !consumer(rb.array[cursor]) {
+				return
+			}
+		}
+		for cursor := len(rb.array) - 1; cursor >= rb.head; cursor-- {
+			if !consumer(rb.array[cursor]) {
+				return
+			}
+		}
+
 	}
 }
 

@@ -98,6 +98,36 @@ func (q *LinkedList) Each(consumer func(value interface{})) {
 	}
 }
 
+// EachUntil calls the consumer for each element of the linked list, but can abort.
+func (q *LinkedList) EachUntil(consumer func(value interface{}) bool) {
+	if q.head == nil {
+		return
+	}
+
+	nodePtr := q.head
+	for nodePtr != nil {
+		if !consumer(nodePtr.Value) {
+			return
+		}
+		nodePtr = nodePtr.Previous
+	}
+}
+
+// ReverseEachUntil calls the consumer for each element of the linked list, but can abort.
+func (q *LinkedList) ReverseEachUntil(consumer func(value interface{}) bool) {
+	if q.head == nil {
+		return
+	}
+
+	nodePtr := q.tail
+	for nodePtr != nil {
+		if !consumer(nodePtr.Value) {
+			return
+		}
+		nodePtr = nodePtr.Next
+	}
+}
+
 // AsSlice returns the full contents of the queue as a slice.
 func (q *LinkedList) AsSlice() []interface{} {
 	if q.head == nil {

@@ -17,52 +17,64 @@
 			"revisionTime": "2016-07-23T19:36:15Z"
 		},
 		{
-			"checksumSHA1": "yUIONGYD4U0WoQd5jmF7DhcklxQ=",
+			"checksumSHA1": "DN3DA4i8pUal3ujm4yePg3IuSjI=",
 			"path": "github.com/blendlabs/go-chronometer",
-			"revision": "d6448e10f55d56370f91a8472dacf2704742d7e1",
-			"revisionTime": "2016-12-06T18:45:40Z"
+			"revision": "5f705e5b0494a94ac3c5e36a1bd9b94ebc3ad6af",
+			"revisionTime": "2017-02-25T22:27:37Z"
 		},
 		{
-			"checksumSHA1": "SbgTGx3lnuqo29iiV2jdbnmVP7E=",
+			"checksumSHA1": "xrW3Vd0Iw7RpFTRy1VnInhIa5ao=",
 			"path": "github.com/blendlabs/go-exception",
-			"revision": "3016f62c905ec9aab528104ef58ac4f5cd395a22",
-			"revisionTime": "2016-12-13T02:24:32Z"
+			"revision": "d3934f941cb001f2b61a69b25dbc76eab3e6ff29",
+			"revisionTime": "2017-04-04T01:29:20Z"
 		},
 		{
-			"checksumSHA1": "30qHTbZ14kVGTsj2qRXvMpsnsDw=",
+			"checksumSHA1": "hyyAJUbCa5mvHzuZ6vMfoS27vw0=",
 			"path": "github.com/blendlabs/go-logger",
-			"revision": "6e19d0c0451221d9bee8d182c6fd5211ddf14c10",
-			"revisionTime": "2016-12-15T23:56:25Z"
+			"revision": "6ad1677c3d2bcdcd909abc2dc300d224df345a51",
+			"revisionTime": "2017-04-04T01:03:31Z"
 		},
 		{
-			"checksumSHA1": "ZhMh5tNzGH6tuaZsMh+sWaaX+SU=",
+			"checksumSHA1": "hUWWlDLtHaGnC4coUMQxUxkN+kg=",
 			"path": "github.com/blendlabs/go-request",
-			"revision": "28ee96ab55c9f9144620a7d8a00e560751f5c9f4",
-			"revisionTime": "2016-11-23T00:24:28Z"
+			"revision": "947ff10801d0f8e09911b9d195eaa5be85d0691b",
+			"revisionTime": "2017-03-26T21:33:25Z"
 		},
 		{
-			"checksumSHA1": "WMgs3g/IikpPOlOFJly7ztxtT+w=",
+			"checksumSHA1": "2YG7U8Rt9y0pn4huvoygtSl/ml8=",
 			"path": "github.com/blendlabs/go-util",
-			"revision": "1a6d66e2156eaf3df85455b4428093e4ef7c0cf6",
-			"revisionTime": "2016-12-06T02:24:07Z"
+			"revision": "850c087f0dd5a9e1d800bae8d3dff44b2aeb2805",
+			"revisionTime": "2017-03-25T07:13:44Z"
 		},
 		{
-			"checksumSHA1": "cUQlxzU4bpI8L1MuL1EgaZV6gJo=",
+			"checksumSHA1": "FnR/Wygnj2W0ReKJ/czc83KAxDg=",
 			"path": "github.com/blendlabs/go-util/collections",
-			"revision": "5b1aa355a232e003127a8e94667ab499062e5388",
-			"revisionTime": "2016-06-10T04:33:31Z"
+			"revision": "850c087f0dd5a9e1d800bae8d3dff44b2aeb2805",
+			"revisionTime": "2017-03-25T07:13:44Z"
 		},
 		{
-			"checksumSHA1": "dK5cKbWwQv6s6gEXW2qbHRhPGjk=",
+			"checksumSHA1": "Qf4TIncZBvjh0zMU/U1oEwpcWWs=",
+			"path": "github.com/blendlabs/go-web",
+			"revision": "c2736280d43384a809fb1f31f26150985b218d48",
+			"revisionTime": "2017-04-04T00:27:43Z"
+		},
+		{
+			"checksumSHA1": "P/wUPcnrmzj0F3q33zs5sL7PVFk=",
 			"path": "github.com/blendlabs/go-workqueue",
-			"revision": "1338d21031f5763044f3a1e754e48c41121a6c8b",
-			"revisionTime": "2016-11-17T22:52:43Z"
+			"revision": "3cb9af71c2cee49e4f56a1199d74688e6e907d31",
+			"revisionTime": "2017-02-19T06:32:18Z"
 		},
 		{
-			"checksumSHA1": "0yfSFZqwMcSp0+XXo2tSKun2sNM=",
+			"checksumSHA1": "aodvWMX3LomHt7BPz+A6tLr29Nk=",
 			"path": "github.com/blendlabs/spiffy",
-			"revision": "fd42a405671e3cdeab558359cdfb8ec90a4177c0",
-			"revisionTime": "2016-12-06T18:35:25Z"
+			"revision": "2c8a701d568fc2b5f0e6e3c0152c1ca907802dd0",
+			"revisionTime": "2017-03-31T08:06:53Z"
+		},
+		{
+			"checksumSHA1": "YBbxm1DpA+Fip82W6iTeFIalU7A=",
+			"path": "github.com/blendlabs/spiffy/migration",
+			"revision": "2c8a701d568fc2b5f0e6e3c0152c1ca907802dd0",
+			"revisionTime": "2017-03-31T08:06:53Z"
 		},
 		{
 			"checksumSHA1": "RSi7QpjPy007TrhCkFk2XYYX/g8=",
@@ -83,16 +95,10 @@
 			"revisionTime": "2016-02-17T17:43:51Z"
 		},
 		{
-			"checksumSHA1": "ToZo7rBIQxk8Y/xDh0sM1MqOaHg=",
+			"checksumSHA1": "6fAHv/OiZlYmNpZhL2upbELTOO4=",
 			"path": "github.com/wcharczuk/go-slack",
-			"revision": "7dbc2fab1a7c2ef6e3f86cfccc95b54da0d66eaf",
-			"revisionTime": "2016-06-13T17:49:35Z"
-		},
-		{
-			"checksumSHA1": "nhuMi8rtbNCBl5wYO0ZwzEUzA+0=",
-			"path": "github.com/wcharczuk/go-web",
-			"revision": "206a8b060050a784de444c9cffdde7f690c4faac",
-			"revisionTime": "2016-12-16T00:03:16Z"
+			"revision": "7e08fd2224b4e0b97008985bb5df91bf190db43f",
+			"revisionTime": "2017-04-04T21:49:16Z"
 		}
 	],
 	"rootPath": "github.com/wcharczuk/jarvis"
