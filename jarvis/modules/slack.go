@@ -41,9 +41,9 @@ func (s *Slack) Name() string {
 // Actions returns the actions for the module.
 func (s *Slack) Actions() []core.Action {
 	return []core.Action{
-		{ID: ActionSlackKeep, MessagePattern: "^keep$", Description: "Keep a user in a channel", Handler: s.handleKeep},
-		{ID: ActionSlackKeep, MessagePattern: "^keeping$", Description: "List kept users", Handler: s.handleKeeping},
-		{ID: ActionSlackUnkeep, MessagePattern: "^unkeep$", Description: "Dont keep a user in a channel", Handler: s.handleUnkeep},
+		{ID: ActionSlackKeep, MessagePattern: "^keep", Description: "Keep a user in a channel", Handler: s.handleKeep},
+		{ID: ActionSlackKeep, MessagePattern: "^keeping", Description: "List kept users", Handler: s.handleKeeping},
+		{ID: ActionSlackUnkeep, MessagePattern: "^unkeep", Description: "Dont keep a user in a channel", Handler: s.handleUnkeep},
 		{ID: ActionSlackUnkeep, Passive: true, MessagePattern: "(.*)", Description: "Listen for channel events", Handler: s.handleSlackEvent, Priority: core.PriorityCatchAll},
 	}
 }
