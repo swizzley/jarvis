@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"sync"
 
 	slack "github.com/wcharczuk/go-slack"
 	"github.com/wcharczuk/jarvis/jarvis/core"
@@ -26,9 +27,17 @@ const (
 	ActionSlackListen = "slack.listen"
 )
 
+// NewSlack returns a new slack module.
+func NewSlack() *Slack {
+	return &Slack{
+		keepUsers: core.ChannelRegistry{},
+	}
+}
+
 // Slack is a module for slack things.
 type Slack struct {
-	keepUsers core.ChannelRegistry
+	keepUsersLock sync.Mutex
+	keepUsers     core.ChannelRegistry
 }
 
 // Init does nothing for `Slack`.
@@ -50,23 +59,27 @@ func (s *Slack) Actions() []core.Action {
 }
 
 func (s *Slack) handleKeep(b core.Bot, m *slack.Message) error {
+	s.keepUsersLock.Lock()
+	defer s.keepUsersLock.Unlock()
+
 	mentions := core.Mentions(m.Text)
-	if len(mentions) == 0 {
+	if len(mentions) < 2 {
 		return b.Sayf(m.Channel, "Need to mention (1) user")
 	}
 
 	channel := b.FindChannel(m.Channel)
 
 	var users []string
-	for _, user := range mentions {
-		fmt.Printf("mentioned: %s\n", user)
+	for _, user := range mentions[1:] {
 		user := b.FindUser(user)
 
 		if user != nil {
+			b.Logger().Debugf("keeping %s in %s %s", user.ID, b.OrganizationName(), channel.Name)
 			s.keepUsers.Register(b.OrganizationName(), m.Channel, user.ID)
 			users = append(users, user.Profile.FirstName)
 		}
 	}
+	fmt.Printf("keeping: %#v\n", s.keepUsers)
 	if len(users) == 0 {
 		return b.Say(m.Channel, "Need to mention (1) valid user.")
 	}
@@ -74,15 +87,18 @@ func (s *Slack) handleKeep(b core.Bot, m *slack.Message) error {
 }
 
 func (s *Slack) handleUnkeep(b core.Bot, m *slack.Message) error {
+	s.keepUsersLock.Lock()
+	defer s.keepUsersLock.Unlock()
+
 	mentions := core.Mentions(m.Text)
-	if len(mentions) == 0 {
+	if len(mentions) < 2 {
 		return b.Sayf(m.Channel, "Need to mention (1) user")
 	}
 
 	channel := b.FindChannel(m.Channel)
 
 	var users []string
-	for _, user := range mentions {
+	for _, user := range mentions[1:] {
 		user := b.FindUser(user)
 
 		if user != nil {
@@ -97,6 +113,9 @@ func (s *Slack) handleUnkeep(b core.Bot, m *slack.Message) error {
 }
 
 func (s *Slack) handleKeeping(b core.Bot, m *slack.Message) error {
+	s.keepUsersLock.Lock()
+	defer s.keepUsersLock.Unlock()
+
 	channel := b.FindChannel(m.Channel)
 	users := s.keepUsers.UsersInChannel(b.OrganizationName(), m.Channel)
 	if len(users) == 0 {
@@ -105,16 +124,25 @@ func (s *Slack) handleKeeping(b core.Bot, m *slack.Message) error {
 
 	response := bytes.NewBuffer(nil)
 	response.WriteString(fmt.Sprintf("Keeping (%d) users in %s\n", len(users), channel.Name))
-	for _, u := range users {
-		response.WriteString(fmt.Sprintf("\t - %s\n", u))
+	for _, uid := range users {
+		u := b.FindUser(uid)
+		if u != nil {
+			response.WriteString(fmt.Sprintf("\t - %s\n", u.Name))
+		}
 	}
 	return b.Say(m.Channel, response.String())
 }
 
 func (s *Slack) handleSlackEvent(b core.Bot, m *slack.Message) error {
 	if slack.Event(m.SubType) == slack.EventSubtypeChannelLeave {
+		b.Logger().Debugf("slack module :: handleSlackEvent for channel leave")
+		s.keepUsersLock.Lock()
+		defer s.keepUsersLock.Unlock()
+
 		if s.keepUsers.Has(b.OrganizationName(), m.Channel, m.User) {
-			b.Client().InviteUser(m.Channel, m.User)
+			b.Logger().Debugf("slack module :: handleSlackEvent for channel leave has user, inviting")
+			_, err := b.Client().InviteUser(m.Channel, m.User)
+			return err
 		}
 		return nil
 	}

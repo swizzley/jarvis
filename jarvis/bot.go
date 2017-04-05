@@ -269,7 +269,7 @@ func (b *Bot) Init() error {
 	b.RegisterModule(new(modules.Config))
 	b.RegisterModule(new(modules.Util))
 	b.RegisterModule(new(modules.Core))
-	b.RegisterModule(new(modules.Slack))
+	b.RegisterModule(modules.NewSlack())
 	b.loadConfiguredModules()
 
 	client := slack.NewClient(b.token)
@@ -345,14 +345,22 @@ func (b *Bot) dispatchResponse(m *slack.Message) error {
 				b.agent.Debugf("dispatchResponse :: message was not a bot user mention.")
 			}
 			if b.passivesEnabled() {
+				var err error
 				for _, action := range b.passiveActions {
 					if core.Like(messageText, action.MessagePattern) && !core.IsEmpty(action.MessagePattern) {
-						return action.Handler(b, m)
+						b.agent.Debugf("dispatchResponse :: passive handler found: %s", action.ID)
+						err = action.Handler(b, m)
+						if err != nil {
+							b.agent.Error(err)
+						}
 					}
 				}
+			} else {
+				b.agent.Debugf("dispatchResponse :: message was passive, passives disabled.")
 			}
+		} else {
+			b.agent.Debugf("dispatchResponse :: user was self, slackbot, or other bot.")
 		}
-		b.agent.Debugf("dispatchResponse :: user was self, slackbot, or other bot.")
 		return nil
 	}
 	b.agent.Debugf("dispatchResponse :: user not found")
@@ -395,14 +403,14 @@ func (b *Bot) createChannelLookup(session *slack.Session) map[string]slack.Chann
 
 // Say calls the internal slack.Client.Say method.
 func (b *Bot) Say(destinationID string, components ...interface{}) error {
-	//b.LogOutgoingMessage(destinationID, components...)
+	b.LogOutgoingMessage(destinationID, components...)
 	return b.client.Say(destinationID, components...)
 }
 
 // Sayf calls the internal slack.Client.Sayf method.
 func (b *Bot) Sayf(destinationID string, format string, components ...interface{}) error {
-	//message := fmt.Sprintf(format, components...)
-	//b.LogOutgoingMessage(destinationID, message)
+	message := fmt.Sprintf(format, components...)
+	b.LogOutgoingMessage(destinationID, message)
 	return b.client.Sayf(destinationID, format, components...)
 }
 
@@ -427,10 +435,15 @@ func (b *Bot) LogIncomingMessage(m *slack.Message) {
 func (b *Bot) LogOutgoingMessage(destinationID string, components ...interface{}) {
 	if core.Like(destinationID, "^C") {
 		channel := b.FindChannel(destinationID)
-		b.Logf("<= #%s (%s) - jarvis: %s", channel.Name, channel.ID, fmt.Sprint(components...))
+		b.agent.Debugf("<= #%s (%s) - jarvis: %s", channel.Name, channel.ID, fmt.Sprint(components...))
 	} else {
-		b.Logf("<= PM - jarvis: %s", fmt.Sprint(components...))
+		b.agent.Debugf("<= PM - jarvis: %s", fmt.Sprint(components...))
 	}
+}
+
+// Logger returns the logger agent.
+func (b *Bot) Logger() *logger.Agent {
+	return b.agent
 }
 
 // Log writes to the log.

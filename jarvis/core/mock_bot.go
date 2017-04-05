@@ -6,13 +6,22 @@ import (
 
 	"github.com/blendlabs/go-chronometer"
 	"github.com/blendlabs/go-exception"
+	logger "github.com/blendlabs/go-logger"
 	"github.com/blendlabs/go-util/collections"
 	"github.com/wcharczuk/go-slack"
 )
 
 // NewMockBot creates a new mock bot.
 func NewMockBot(token string) *MockBot {
-	return &MockBot{id: slack.UUIDv4().ToShortString(), organizationName: "Test Organization", token: token, jobManager: chronometer.NewJobManager(), state: map[string]interface{}{}, configuration: map[string]string{"option.passive": "false"}, actions: map[string]Action{}}
+	return &MockBot{
+		id:               slack.UUIDv4().ToShortString(),
+		organizationName: "Test Organization",
+		token:            token,
+		jobManager:       chronometer.NewJobManager(),
+		state:            map[string]interface{}{},
+		configuration:    map[string]string{"option.passive": "false"},
+		actions:          map[string]Action{},
+		agent:            logger.New(logger.NewEventFlagSetNone())}
 }
 
 // MockMessage returns a mock message.
@@ -30,6 +39,7 @@ type MockBot struct {
 	jobManager       *chronometer.JobManager
 	actions          map[string]Action
 
+	agent         *logger.Agent
 	modules       map[string]BotModule
 	loadedModules collections.SetOfString
 
@@ -190,4 +200,9 @@ func (mb *MockBot) RegisteredModules() collections.SetOfString {
 	}
 
 	return registered
+}
+
+// Logger returns the logger agent.
+func (mb *MockBot) Logger() *logger.Agent {
+	return mb.agent
 }

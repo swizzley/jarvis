@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/blendlabs/go-chronometer"
+	logger "github.com/blendlabs/go-logger"
 	"github.com/blendlabs/go-util/collections"
 	"github.com/wcharczuk/go-slack"
 )
@@ -50,6 +51,7 @@ type Bot interface {
 	Say(destinationID string, components ...interface{}) error
 	Sayf(destinationID string, format string, components ...interface{}) error
 
+	Logger() *logger.Agent
 	Log(components ...interface{})
 	Logf(format string, components ...interface{})
 }

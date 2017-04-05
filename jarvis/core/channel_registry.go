@@ -18,12 +18,7 @@ func (cr ChannelRegistry) Register(org, channel, user string) {
 		cr[org][channel] = map[string]bool{}
 	}
 
-	_, hasUser := cr[org][channel][user]
-	if !hasUser {
-		cr[org][channel][user] = true
-	} else {
-		cr[org][channel][user] = false
-	}
+	cr[org][channel][user] = true
 }
 
 // Unregister adds a user to the registry.
@@ -78,16 +73,15 @@ func (cr ChannelRegistry) UsersInChannel(org, channel string) (users []string) {
 		return
 	}
 
-	_, hasChannel := cr[org][channel]
+	c, hasChannel := cr[org][channel]
 	if !hasChannel {
 		return
 	}
 
-	for user, isRegistered := range cr[org][channel] {
+	for user, isRegistered := range c {
 		if isRegistered {
 			users = append(users, user)
 		}
 	}
-
 	return
 }
