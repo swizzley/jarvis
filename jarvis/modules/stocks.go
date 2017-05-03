@@ -124,7 +124,7 @@ func (s *Stocks) handleStockChart(b core.Bot, m *slack.Message) error {
 
 	pieces := strings.Split(args[1], " ")
 	ticker := pieces[0]
-	timeframe := "1M"
+	timeframe := "LTM"
 	if len(pieces) > 1 {
 		timeframe = pieces[1]
 	}
